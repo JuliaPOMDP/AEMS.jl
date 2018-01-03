@@ -1,140 +1,134 @@
-# TODO: store gamma ^ d
-# TODO: add time cutoff
+#######
+# DEFINITELY
+#######
+# TODO: fix lower_bound and upper_bound functions
+# TODO: return the action that should be taken
+
+#######
+# MAYBE
+#######
+# TODO: store gamma ^ d?
 
 
-mutable struct ActionNode
-    r::Float64
-    parent_ind::Int
-    children::UnitRange{Int64}
-    ai::Int     # which action does this correspond to
+struct DefaultPolicy <: Policy end
 
-    pab::Float64        # P(a | b)
-    U::Float64
-    L::Float64
-
-    ActionNode(r, pind, children, ai) = new(r, pind, children, ai, 1.0, 0.0,0.0)
-end
-
-
-mutable struct BeliefNode{B}
-    b::B
-    ind::Int
-    pind::Int       # index of parent node
-
-    oi::Int         # index of observation corresponding with this belief
-    po::Float64     # probability of seeing that observation
-
-    L::Float64
-    U::Float64
-    d::Int          # depth
-
-    children::UnitRange{Int64}
-end
-
-function BeliefNode(b,ind::Int,pind::Int,oi::Int,po::Float64,L::Float64,U::Float64,d::Int)
-    return BeliefNode(b, ind, pind, oi, po, L, U, d, 0:0)
-end
-
-mutable struct Graph
-    action_nodes::Vector{ActionNode}
-    belief_nodes::Vector{BeliefNode}
-
-    na::Int     # number of action nodes
-    nb::Int     # number of belief nodes
-
-    root_ind::Int
-    fringe_list::Set{BeliefNode}
-
-    df::Float64     # discount factor
-
-    # constructor
-    function Graph(df::Real)
-        new(ActionNode[], BeliefNode[], 0, 0, 1, Set{BeliefNode}(), df)
-    end
-end
-
-function add_node(G::Graph, an::ActionNode)
-    push!(G.action_nodes, an)
-    G.na += 1
-end
-
-function add_node(G::Graph, bn::BeliefNode)
-    push!(G.belief_nodes, bn)   # add new node to list of belief nodes
-    push!(G.fringe_list, bn)    # add new node to fringe list
-    G.nb += 1                   # length of G.belief_nodes increases by 1
-end
-
-
-mutable struct AEMSSolver
+# SOLVER
+mutable struct AEMSSolver{U <: Updater, PL <: Policy, PU <: Policy}
     n_iterations::Int
+    max_time::Float64   # max time per action, in seconds
+    updater::U
 
-    AEMSSolver(n_iterations::Int=100) = new(n_iterations)
+    lb::PL
+    ub::PU
+end
+function AEMSSolver(;n_iterations::Int=100, max_time::Float64=1.0, updater=DiscreteUpdater(p), lb=DefaultPolicy(), ub=DefaultPolicy())
+    AEMSSolver(n_iterations, max_time, updater, lb, ub)
 end
 
-mutable struct AEMSPlanner{P<:POMDP, U<:Updater}
+
+# PLANNER
+mutable struct AEMSPlanner{P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy}
     solver::AEMSSolver  # contains solver parameters
     pomdp::P            # model
     updater::U
     G::Graph
-
-    #AEMSPlanner(s, p, u, G) = new(s, p, u, G)
+    lb::PL      # lower bound
+    ub::PU      # upper bound
+end
+function AEMSPlanner(s::AEMSSolver, p::POMDP, lb, ub)
+    return AEMSPlanner(s, p, s.updater, Graph(discount(p)), lb, ub)
 end
 
 
-# TODO: is this outer constructor ok?
-function AEMSPlanner(s::AEMSSolver, p::POMDP)
-    return AEMSPlanner(s, p, DiscreteUpdater(p), Graph(discount(p)))
-end
+# SOLVE
+function solve(solver::AEMSSolver, pomdp::POMDP)
 
-function AEMSPlanner(s::AEMSSolver, p::POMDP, u::Updater)
-    return AEMSPlanner(s, p, u, Graph(discount(p)))
-end
+    # if no lower bound was given to solver, default to blind
+    lb = solver.lb
+    if typeof(lb) == DefaultPolicy
+        println("Lower bound defaulting to BlindPolicy...")
+        lb = BlindPolicy(pomdp)
+    end
 
-function solve(solver::AEMSSolver, pomdp::POMDP, up::Updater)
-    AEMSPlanner(solver, pomdp, up)
+
+    # if no upper bound was passed to solver, default to FIB
+    ub = solver.ub
+    if typeof(ub) == DefaultPolicy
+        println("Upper bound defaulting to FIB...")
+        s = FIBSolver()
+        ub = solve(s, pomdp)
+    end
+
+    AEMSPlanner(solver, pomdp, lb, ub)
 end
 
 
 # TODO: don't recreate the graph
 function action(policy::AEMSPlanner, b)
 
+    t_start = time()
+
+    # recreate the graph
+    clear_graph!(policy.G)     # TODO: don't do this shit
+
     # create belief node and put it in graph
-    L = 10.0
-    U = 0.0
-    pind = 0
-    bn_root = BeliefNode(b, 1, pind, 0, 0.0, L, U, 0, 0:0)
+    L = -100.0
+    U = 1.0
+    bn_root = BeliefNode(b, 1, 0, 0, 0.0, L, U, 0, 0:0)
     add_node(policy.G, bn_root)
 
-    # TODO: make a different cutoff criterion
     for i = 1:policy.solver.n_iterations
-
-        # determine best node
+        
+        # determine node to expand
         best_bn = select_node(policy.G)
+        Lold, Uold = best_bn.L, best_bn.U
 
         expand(policy, best_bn)
 
-        #backtrack(policy.pomdp, b)
-        cn = best_bn
-        while cn.ind != 1
-            old_L = cn.L
-            old_U = cn.U
+        backtrack(policy.G, best_bn, Lold, Uold)
 
-            an = policy.G.action_nodes[cn.pind]
-
-            #U = an.U - old_U * discount
-
-
-            # now update L and U for
-            cn = policy.G.belief_nodes[an.parent_ind]
-
-            # now iterate over all child nodes to do
+        # stop if the timeout has been reached
+        if (time() - t_start) > policy.solver.max_time
+            println("max time reached")
+            break
         end
     end
-    
-    return policy.G
+
+    # now return the best action
+    best_L = -Inf
+    best_ai = 1
+    for ci in bn_root.children
+        an = policy.G.action_nodes[ci]
+        if an.L >= best_L
+            best_L = an.L
+            best_ai = an.ai
+        end
+    end
+
+    return actions(policy.pomdp)[best_ai]
 end
 
-# TODO: evaluate nodes properly
+function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
+
+    while !isroot(G, bn)
+        an = parent_node(G, bn)
+        an.L += G.df*bn.po * (bn.L - Lold)
+        an.U += G.df*bn.po * (bn.U - Uold)
+        bn = parent_node(G, an)
+
+        # if bounds are improved
+        if an.L > bn.L || an.U < bn.U
+            Lold = bn.L
+            Uold = bn.U
+
+            bn.L = an.L
+            bn.U = an.U
+        else
+            break   # if bounds not improved
+        end
+    end
+end
+
 # return best belief node
 function select_node(G::Graph)
     best_bn = G.belief_nodes[1]
@@ -155,13 +149,15 @@ end
 # evaluates a fringe node
 function evaluate_node(G::Graph, bn::BeliefNode)
 
-    pb = 1.0    # P(b^d)
+    # compute pb = P(b^d)
+    pb = 1.0
     cn = bn     # current node cn
-    while cn.ind != 1
-        an = G.action_nodes[cn.pind]
-        cn = G.belief_nodes[an.parent_ind]
+    aya = isroot(G, cn)
+    while !isroot(G, cn)
+        an = parent_node(G, cn)
+        cn = parent_node(G, an)
 
-        pb = cn.po * an.pab
+        pb *= an.pab * cn.po
     end
 
     return G.df^bn.d * pb * (bn.U - bn.L)
@@ -177,23 +173,29 @@ end
 # I'll also have it do one step of backtracking
 function expand(p::AEMSPlanner, bn::BeliefNode)
 
-    # first remove belief node from fringe list
-    delete!(p.G.fringe_list, bn)
-
-    # consider all actions we can take
-    pomdp = p.pomdp
-    action_list = actions(pomdp)
-    na = n_actions(p.pomdp)
-    obs_list = observations(pomdp)
-
     # for ease of notation
     G = p.G
     b = bn.b
+    pomdp = p.pomdp
+    action_list = actions(pomdp)
+    obs_list = observations(pomdp)
+
+    # first remove belief node from fringe list
+    remove_from_fringe(G, bn)
+
+    # rar
+    bestL = -Inf
+    bestU = -Inf
 
     a_start = G.na + 1
     for (ai,a) in enumerate(action_list)
         aind = G.na + 1 # index of parent action node
         b_start = G.nb + 1
+
+        # reward for action node
+        r = R(pomdp, b, a)
+        La = r
+        Ua = r
 
         for (oi,o) in enumerate(obs_list)
             # probability of measuring o
@@ -202,10 +204,12 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
             # update belief
             bp = update(p.updater, b, a, o)
 
-            # determine bounds
-            # TODO: need way to assign upper and lower bounds
-            L = 0.0
-            U = 10.0
+            # determine bounds at new belief
+            L = value(p.lb, bp)
+            U = value(p.ub, bp)
+
+            La += G.df * po * L
+            Ua += G.df * po * U
 
             # create belief node and add to graph
             bpn = BeliefNode(bp, G.nb+1, aind, oi, po, L, U, bn.d+1)
@@ -213,13 +217,28 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
         end
 
         # create action node and add to graph
-        r = R(pomdp, b, a)
+
+        if Ua > bestU
+            bestU = Ua
+        end
+        if La > bestL
+            bestL = La
+        end
+
+        # range for action node
         b_range = b_start:G.nb
-        an = ActionNode(r, bn.ind, b_range, ai)
+
+        an = ActionNode(r, bn.ind, b_range, ai, La, Ua)
         add_node(G, an)
     end
 
     bn.children = a_start:G.na
+
+    # TODO: check that this is right. I think so
+    #  don't need to do max(bn.L, bestL)
+    #   before it was just an approximation. now it's slightly better
+    bn.L = bestL
+    bn.U = bestU
 end
 
 function O(pomdp, b, a, o)
@@ -246,11 +265,4 @@ function R(pomdp, b, a)
         expected_r += reward(pomdp, s, a)# * pdf(b, s)
     end
     return expected_r
-end
-
-function backup(bn::BeliefNode)
-    for ci in an.children
-
-    end
-    # return the parent belief
 end
