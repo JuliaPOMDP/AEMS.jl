@@ -138,7 +138,7 @@ function update_node(G::Graph, bn::BeliefNode)
             U_max = an.U
             ai_max = ai        # AEMS2
         end
-        an.L > L_max && L_max = an.L
+        an.L > L_max && (L_max = an.L)
     end
 
     bn.L = L_max
