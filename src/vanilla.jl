@@ -13,7 +13,7 @@
 struct DefaultPolicy <: Policy end
 
 # SOLVER
-mutable struct AEMSSolver{U <: Updater, PL <: Policy, PU <: Policy}
+mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
     n_iterations::Int
     max_time::Float64   # max time per action, in seconds
     updater::U
@@ -27,7 +27,7 @@ end
 
 
 # PLANNER
-mutable struct AEMSPlanner{P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy}
+mutable struct AEMSPlanner{P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy} <: Policy
     solver::AEMSSolver  # contains solver parameters
     pomdp::P            # model
     updater::U
@@ -62,6 +62,8 @@ function solve(solver::AEMSSolver, pomdp::POMDP)
     AEMSPlanner(solver, pomdp, lb, ub)
 end
 
+updater(planner::AEMSPlanner) = planner.updater
+
 
 # TODO: don't recreate the graph
 function action(policy::AEMSPlanner, b)
@@ -72,9 +74,9 @@ function action(policy::AEMSPlanner, b)
     clear_graph!(policy.G)     # TODO: don't do this shit
 
     # create belief node and put it in graph
-    L = -100.0
-    U = 1.0
-    bn_root = BeliefNode(b, 1, 0, 0, 0.0, L, U, 0, 0:0)
+    L = value(policy.lb, b)
+    U = value(policy.ub, b)
+    bn_root = BeliefNode(b, 1, 0, 0, 1.0, L, U, 0)
     add_node(policy.G, bn_root)
 
     for i = 1:policy.solver.n_iterations
@@ -89,7 +91,7 @@ function action(policy::AEMSPlanner, b)
 
         # stop if the timeout has been reached
         if (time() - t_start) > policy.solver.max_time
-            println("max time reached")
+            #println("max time reached")
             break
         end
     end
@@ -105,6 +107,8 @@ function action(policy::AEMSPlanner, b)
         end
     end
 
+    #a = actions(policy.pomdp)[best_ai]
+    #println("a = ", a)
     return actions(policy.pomdp)[best_ai]
 end
 
@@ -116,7 +120,21 @@ function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
         an.U += G.df*bn.po * (bn.U - Uold)
         bn = parent_node(G, an)
 
-        # if bounds are improved
+        # loop over children and set P(a | b)
+        # TODO: must I do this even if new bn's bounds aren't improved?
+        #  maybe, if action bounds change (AEMS1)
+        best_ai = bn.children[1]
+        best_U = -Inf
+        for ai in bn.children
+            G.action_nodes[ai].pab = 0.0
+            if G.action_nodes[ai].U > best_U
+                best_U = G.action_nodes[ai].U
+                best_ai = ai
+            end
+        end
+        G.action_nodes[best_ai].pab = 1.0
+
+        # if belief bounds are improved
         if an.L > bn.L || an.U < bn.U
             Lold = bn.L
             Uold = bn.U
@@ -152,7 +170,6 @@ function evaluate_node(G::Graph, bn::BeliefNode)
     # compute pb = P(b^d)
     pb = 1.0
     cn = bn     # current node cn
-    aya = isroot(G, cn)
     while !isroot(G, cn)
         an = parent_node(G, cn)
         cn = parent_node(G, an)
@@ -183,19 +200,14 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     # first remove belief node from fringe list
     remove_from_fringe(G, bn)
 
-    # rar
-    bestL = -Inf
-    bestU = -Inf
-
+    bestL = bestU = -Inf
     a_start = G.na + 1
     for (ai,a) in enumerate(action_list)
         aind = G.na + 1 # index of parent action node
         b_start = G.nb + 1
 
         # reward for action node
-        r = R(pomdp, b, a)
-        La = r
-        Ua = r
+        La = Ua = r = R(pomdp, b, a)
 
         for (oi,o) in enumerate(obs_list)
             # probability of measuring o
@@ -217,13 +229,8 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
         end
 
         # create action node and add to graph
-
-        if Ua > bestU
-            bestU = Ua
-        end
-        if La > bestL
-            bestL = La
-        end
+        (Ua > bestU) && (bestU = Ua)
+        (La > bestL) && (bestL = La)
 
         # range for action node
         b_range = b_start:G.nb
@@ -239,6 +246,18 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     #   before it was just an approximation. now it's slightly better
     bn.L = bestL
     bn.U = bestU
+
+    # now iterate over actions to compute P(a | b)
+    best_ai = bn.children[1]
+    best_U = -Inf
+    for ai in bn.children
+        G.action_nodes[ai].pab = 0.0
+        if G.action_nodes[ai].U > best_U
+            best_U = G.action_nodes[ai].U
+            best_ai = ai
+        end
+    end
+    G.action_nodes[best_ai].pab = 1.0
 end
 
 function O(pomdp, b, a, o)
@@ -262,7 +281,7 @@ function R(pomdp, b, a)
     state_list = ordered_states(pomdp)
     expected_r = 0.0
     for s in state_list
-        expected_r += reward(pomdp, s, a)# * pdf(b, s)
+        expected_r += reward(pomdp, s, a) * pdf(b, s)
     end
     return expected_r
 end
