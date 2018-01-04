@@ -1,6 +1,7 @@
 using D3Trees
 
-function visualize(G::Graph)
+function visualize(planner::AEMSPlanner)
+    G = planner.G
     children = Array{Vector{Int}}(0)
     text = String[]
 
@@ -12,15 +13,22 @@ function visualize(G::Graph)
             push!(children, [])
         end
         if bni == 1
-            push!(text, "b0")
+            push!(text, "b0\nU=$(round(bn.U,2))\nL=$(round(bn.L,2))")
         else
-            push!(text, "P(o$(bn.oi)) = $(round(bn.po,3))\nL=$(round(bn.L,3))\nU=$(round(bn.U,3))")
+            p = "P(o$(bn.oi)) = $(round(bn.po,2))"
+            L = "\nL=$(round(bn.L,2))"
+            U = "\nU=$(round(bn.U,2))"
+            push!(text, string(p,U,L))
         end
     end
 
     for an in G.action_nodes
         push!(children, collect(an.children))
-        push!(text, "a$(an.ai)\nL=$(round(an.L,3))\nU=$(round(an.U,3))")
+        r = "r(a$(an.ai)) = $(round(an.r))"
+        L = "\nL=$(round(an.L,2))"
+        U = "\nU=$(round(an.U,2))"
+        pab = "\nP(a|b)=$(round(an.pab,2))"
+        push!(text, string(r,U,L,pab))
     end
 
     D3Tree(children, text=text)
