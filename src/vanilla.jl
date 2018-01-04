@@ -178,6 +178,8 @@ function evaluate_node(G::Graph, bn::BeliefNode)
         cn = parent_node(G, an)
 
         pb *= an.pab * cn.po
+
+        (pb == 0.0) && break   # just quit if pb is already zero
     end
 
     return G.df^bn.d * pb * (bn.U - bn.L)
