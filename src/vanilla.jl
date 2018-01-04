@@ -129,6 +129,7 @@ function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
             bn.L = an.L
             bn.U = an.U
         else
+            println("AWEASFDASDFASDF")
             break   # if bounds not improved
         end
     end
@@ -202,13 +203,13 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     # first remove belief node from fringe list
     remove_from_fringe(G, bn)
 
-    bestL = bestU = -Inf
+    La_max = Ua_max = -Inf
     a_start = G.na + 1
     for (ai,a) in enumerate(action_list)
         aind = G.na + 1 # index of parent action node
         b_start = G.nb + 1
 
-        # reward for action node
+        # bounds and reward for action node
         La = Ua = r = R(pomdp, b, a)
 
         for (oi,o) in enumerate(obs_list)
@@ -230,13 +231,11 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
             add_node(G, bpn)
         end
 
+        (Ua > Ua_max) && (Ua_max = Ua)
+        (La > La_max) && (La_max = La)
+
         # create action node and add to graph
-        (Ua > bestU) && (bestU = Ua)
-        (La > bestL) && (bestL = La)
-
-        # range for action node
-        b_range = b_start:G.nb
-
+        b_range = b_start:G.nb      # indices of children belief nodes
         an = ActionNode(r, bn.ind, b_range, ai, La, Ua)
         add_node(G, an)
     end
@@ -244,10 +243,10 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     bn.children = a_start:G.na
 
     # TODO: check that this is right. I think so
-    #  don't need to do max(bn.L, bestL)
+    #  don't need to do max(bn.L, La_max)
     #   before it was just an approximation. now it's slightly better
-    bn.L = bestL
-    bn.U = bestU
+    bn.L = La_max
+    bn.U = Ua_max
 
     # now iterate over actions to compute P(a | b)
     update_pab(G, bn)
