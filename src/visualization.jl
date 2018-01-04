@@ -14,13 +14,13 @@ function visualize(G::Graph)
         if bni == 1
             push!(text, "b0")
         else
-            push!(text, "P(o$(bn.oi)) = $(round(bn.po,3))")
+            push!(text, "P(o$(bn.oi)) = $(round(bn.po,3))\nL=$(round(bn.L,3))\nU=$(round(bn.U,3))")
         end
     end
 
     for an in G.action_nodes
         push!(children, collect(an.children))
-        push!(text, "a$(an.ai)")
+        push!(text, "a$(an.ai)\nL=$(round(an.L,3))\nU=$(round(an.U,3))")
     end
 
     D3Tree(children, text=text)
