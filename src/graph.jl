@@ -9,7 +9,7 @@ mutable struct ActionNode
     U::Float64
 
     function ActionNode(r, pind, children, ai, L, U)
-        new(r, pind, children, ai, 1.0, L, U)
+        new(r, pind, children, ai, 0.0, L, U)
     end
 end
 

@@ -108,6 +108,7 @@ function action(policy::AEMSPlanner, b)
     return actions(policy.pomdp)[best_ai]
 end
 
+# 
 function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
 
     while !isroot(G, bn)
@@ -116,38 +117,36 @@ function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
         an.U += G.df*bn.po * (bn.U - Uold)
         bn = parent_node(G, an)
 
-        # loop over children and set P(a | b)
-        # TODO: must I do this even if new bn's bounds aren't improved?
-        #  maybe, if action bounds change (AEMS1)
-        update_pab(G, bn)
+        # if belief bounds are not improved... does it matter?
+        #if an.U > bn.U && an.L < bn.L .... break?
 
-        # if belief bounds are improved
-        if an.L > bn.L || an.U < bn.U
-            Lold = bn.L
-            Uold = bn.U
-
-            bn.L = an.L
-            bn.U = an.U
-        else
-            println("AWEASFDASDFASDF")
-            break   # if bounds not improved
-        end
+        Lold, Uold = update_node(G, bn)
     end
 end
 
+# also updates L and U given children
 # updates P(a | b) for all action children of node bn
 #  according to AEMS2 heuristic
-function update_pab(G::Graph, bn::BeliefNode)
-    best_ai = bn.children[1]
-    best_U = -Inf
+function update_node(G::Graph, bn::BeliefNode)
+    L_old, U_old = bn.L, bn.U
+    ai_max = bn.children[1]
+    U_max = L_max = -Inf
     for ai in bn.children
-        G.action_nodes[ai].pab = 0.0
-        if G.action_nodes[ai].U > best_U
-            best_U = G.action_nodes[ai].U
-            best_ai = ai
+        an = G.action_nodes[ai]
+        an.pab = 0.0            # AEMS2
+        if an.U > U_max
+            U_max = an.U
+            ai_max = ai        # AEMS2
         end
+        an.L > L_max && L_max = an.L
     end
-    G.action_nodes[best_ai].pab = 1.0
+
+    bn.L = L_max
+    bn.U = U_max
+
+    G.action_nodes[ai_max].pab = 1.0    # AEMS2
+
+    return L_old, U_old
 end
 
 # return best belief node
@@ -205,11 +204,13 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     # first remove belief node from fringe list
     remove_from_fringe(G, bn)
 
-    La_max = Ua_max = -Inf
-    a_start = G.na + 1
+    La_max = Ua_max = -Inf  # max Ua over actions
+    an_start = G.na + 1
+    ai_max = an_start       # index of maximum upper bound (for AEMS2)
+
     for (ai,a) in enumerate(action_list)
-        aind = G.na + 1 # index of parent action node
-        b_start = G.nb + 1
+        an_ind = G.na + 1 # index of parent action node
+        bn_start = G.nb + 1
 
         # bounds and reward for action node
         La = Ua = r = R(pomdp, b, a)
@@ -229,29 +230,31 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
             Ua += G.df * po * U
 
             # create belief node and add to graph
-            bpn = BeliefNode(bp, G.nb+1, aind, oi, po, L, U, bn.d+1)
+            bpn = BeliefNode(bp, G.nb+1, an_ind, oi, po, L, U, bn.d+1)
             add_node(G, bpn)
         end
 
-        (Ua > Ua_max) && (Ua_max = Ua)
-        (La > La_max) && (La_max = La)
+        # update
+        if Ua > Ua_max
+            Ua_max = Ua
+            ai_max = an_ind     # AEMS2
+        end
+        La > La_max && (La_max = La)
 
         # create action node and add to graph
-        b_range = b_start:G.nb      # indices of children belief nodes
+        b_range = bn_start:G.nb      # indices of children belief nodes
         an = ActionNode(r, bn.ind, b_range, ai, La, Ua)
         add_node(G, an)
     end
 
-    bn.children = a_start:G.na
+    # child nodes of bn are the action nodes we've opened
+    bn.children = an_start:G.na
 
-    # TODO: check that this is right. I think so
-    #  don't need to do max(bn.L, La_max)
-    #   before it was just an approximation. now it's slightly better
     bn.L = La_max
     bn.U = Ua_max
 
-    # now iterate over actions to compute P(a | b)
-    update_pab(G, bn)
+    G.action_nodes[ai_max].pab = 1.0    # AEMS2
+
 end
 
 function O(pomdp, b, a, o)
