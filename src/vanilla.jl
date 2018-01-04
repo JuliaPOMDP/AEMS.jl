@@ -123,16 +123,7 @@ function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
         # loop over children and set P(a | b)
         # TODO: must I do this even if new bn's bounds aren't improved?
         #  maybe, if action bounds change (AEMS1)
-        best_ai = bn.children[1]
-        best_U = -Inf
-        for ai in bn.children
-            G.action_nodes[ai].pab = 0.0
-            if G.action_nodes[ai].U > best_U
-                best_U = G.action_nodes[ai].U
-                best_ai = ai
-            end
-        end
-        G.action_nodes[best_ai].pab = 1.0
+        update_pab(G, bn)
 
         # if belief bounds are improved
         if an.L > bn.L || an.U < bn.U
@@ -145,6 +136,21 @@ function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
             break   # if bounds not improved
         end
     end
+end
+
+# updates P(a | b) for all action children of node bn
+#  according to AEMS2 heuristic
+function update_pab(G::Graph, bn::BeliefNode)
+    best_ai = bn.children[1]
+    best_U = -Inf
+    for ai in bn.children
+        G.action_nodes[ai].pab = 0.0
+        if G.action_nodes[ai].U > best_U
+            best_U = G.action_nodes[ai].U
+            best_ai = ai
+        end
+    end
+    G.action_nodes[best_ai].pab = 1.0
 end
 
 # return best belief node
@@ -164,7 +170,7 @@ function select_node(G::Graph)
     return best_bn
 end
 
-# evaluates a fringe node
+# evaluates a fringe node using the AEMS heuristic
 function evaluate_node(G::Graph, bn::BeliefNode)
 
     # compute pb = P(b^d)
@@ -248,16 +254,7 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     bn.U = bestU
 
     # now iterate over actions to compute P(a | b)
-    best_ai = bn.children[1]
-    best_U = -Inf
-    for ai in bn.children
-        G.action_nodes[ai].pab = 0.0
-        if G.action_nodes[ai].U > best_U
-            best_U = G.action_nodes[ai].U
-            best_ai = ai
-        end
-    end
-    G.action_nodes[best_ai].pab = 1.0
+    update_pab(G, bn)
 end
 
 function O(pomdp, b, a, o)
