@@ -46,17 +46,13 @@ function solve(solver::AEMSSolver, pomdp::POMDP)
     # if no lower bound was given to solver, default to blind
     lb = solver.lb
     if typeof(lb) == DefaultPolicy
-        println("Lower bound defaulting to BlindPolicy...")
         lb = BlindPolicy(pomdp)
     end
-
 
     # if no upper bound was passed to solver, default to FIB
     ub = solver.ub
     if typeof(ub) == DefaultPolicy
-        println("Upper bound defaulting to FIB...")
-        s = FIBSolver()
-        ub = solve(s, pomdp)
+        ub = solve(FIBSolver(), pomdp)
     end
 
     AEMSPlanner(solver, pomdp, lb, ub)
