@@ -11,6 +11,7 @@
 
 
 struct DefaultPolicy <: Policy end
+struct DefaultUpdater <: Updater end
 
 # SOLVER
 mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
@@ -18,44 +19,50 @@ mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
     max_time::Float64   # max time per action, in seconds
     updater::U
 
-    lb::PL
-    ub::PU
+    lower_bound::PL
+    upper_bound::PU
 end
-function AEMSSolver(;n_iterations::Int=100, max_time::Float64=1.0, updater=DiscreteUpdater(p), lb=DefaultPolicy(), ub=DefaultPolicy())
+function AEMSSolver(;n_iterations::Int=100, max_time::Float64=1.0, updater=DefaultUpdater(), lb=DefaultPolicy(), ub=DefaultPolicy())
     AEMSSolver(n_iterations, max_time, updater, lb, ub)
 end
 
 
 # PLANNER
-mutable struct AEMSPlanner{P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy} <: Policy
+struct AEMSPlanner{P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy} <: Policy
     solver::AEMSSolver  # contains solver parameters
     pomdp::P            # model
     updater::U
     G::Graph
-    lb::PL      # lower bound
-    ub::PU      # upper bound
+    lower_bound::PL      # lower bound
+    upper_bound::PU      # upper bound
 end
-function AEMSPlanner(s::AEMSSolver, p::POMDP, lb, ub)
-    return AEMSPlanner(s, p, s.updater, Graph(discount(p)), lb, ub)
+function AEMSPlanner(s::AEMSSolver, p::POMDP, up, lb, ub)
+    return AEMSPlanner(s, p, up, Graph(discount(p)), lb, ub)
 end
 
 
 # SOLVE
 function solve(solver::AEMSSolver, pomdp::POMDP)
 
+    # if no updater was given, default to discrete updater
+    up = solver.updater
+    if typeof(up) == DefaultUpdater
+        up = DiscreteUpdater(pomdp)
+    end
+
     # if no lower bound was given to solver, default to blind
-    lb = solver.lb
+    lb = solver.lower_bound
     if typeof(lb) == DefaultPolicy
         lb = BlindPolicy(pomdp)
     end
 
     # if no upper bound was passed to solver, default to FIB
-    ub = solver.ub
+    ub = solver.upper_bound
     if typeof(ub) == DefaultPolicy
         ub = solve(FIBSolver(), pomdp)
     end
 
-    AEMSPlanner(solver, pomdp, lb, ub)
+    AEMSPlanner(solver, pomdp, up, lb, ub)
 end
 
 updater(planner::AEMSPlanner) = planner.updater
@@ -70,8 +77,8 @@ function action(policy::AEMSPlanner, b)
     clear_graph!(policy.G)     # TODO: don't do this shit
 
     # create belief node and put it in graph
-    L = value(policy.lb, b)
-    U = value(policy.ub, b)
+    L = value(policy.lower_bound, b)
+    U = value(policy.upper_bound, b)
     bn_root = BeliefNode(b, 1, 0, 0, 1.0, L, U, 0)
     add_node(policy.G, bn_root)
 
@@ -223,8 +230,8 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
             bp = update(p.updater, b, a, o)
 
             # determine bounds at new belief
-            L = value(p.lb, bp)
-            U = value(p.ub, bp)
+            L = value(p.lower_bound, bp)
+            U = value(p.upper_bound, bp)
 
             La += G.df * po * L
             Ua += G.df * po * U
