@@ -179,18 +179,18 @@ end
 function evaluate_node(G::Graph, bn::BeliefNode)
 
     # compute pb = P(b^d)
-    pab = 1.0
+    pb = 1.0
     cn = bn     # current node cn
     while !isroot(G, cn)
         an = parent_node(G, cn)
         cn = parent_node(G, an)
 
-        pab *= an.pab
+        pb *= an.pab * cn.po
 
-        (pab == 0.0) && break   # just quit if pb is already zero
+        (pb == 0.0) && break   # just quit if pb is already zero
     end
 
-    pb = pab * bn.poc
+    #pb = pab * bn.poc
     return G.df^bn.d * pb * (bn.U - bn.L)
 end
 
