@@ -53,7 +53,8 @@ function solve(solver::AEMSSolver, pomdp::POMDP)
     # if no lower bound was given to solver, default to blind
     lb = solver.lower_bound
     if typeof(lb) == DefaultPolicy
-        lb = BlindPolicy(pomdp)
+        #lb = BlindPolicy(pomdp)
+        lb = solve(FixedActionSolver(), pomdp)
     end
 
     # if no upper bound was passed to solver, default to FIB
@@ -79,7 +80,8 @@ function action(policy::AEMSPlanner, b)
     # create belief node and put it in graph
     L = value(policy.lower_bound, b)
     U = value(policy.upper_bound, b)
-    bn_root = BeliefNode(b, 1, 0, 0, 1.0, L, U, 0)
+    #bn_root = BeliefNode(b, 1, 0, 0, 1.0, 1.0, L, U, 0)
+    bn_root = BeliefNode(b, L, U)
     add_node(policy.G, bn_root)
 
     for i = 1:policy.solver.n_iterations
@@ -177,6 +179,7 @@ end
 function evaluate_node(G::Graph, bn::BeliefNode)
 
     # compute pb = P(b^d)
+    pab = 1.0
     pb = 1.0
     cn = bn     # current node cn
     while !isroot(G, cn)
@@ -184,12 +187,21 @@ function evaluate_node(G::Graph, bn::BeliefNode)
         cn = parent_node(G, an)
 
         pb *= an.pab * cn.po
+        #pab *= an.pab# * cn.po
 
         (pb == 0.0) && break   # just quit if pb is already zero
     end
 
+    #pb = pab * bn.poc
     return G.df^bn.d * pb * (bn.U - bn.L)
 end
+
+
+function select_node2(G::Graph, bn::BeliefNode)
+
+end
+
+
 
 
 
@@ -237,7 +249,8 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
             Ua += G.df * po * U
 
             # create belief node and add to graph
-            bpn = BeliefNode(bp, G.nb+1, an_ind, oi, po, L, U, bn.d+1)
+            poc = bn.poc * bn.po
+            bpn = BeliefNode(bp, G.nb+1, an_ind, oi, po, poc, L, U, bn.d+1)
             add_node(G, bpn)
         end
 

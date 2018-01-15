@@ -21,6 +21,7 @@ mutable struct BeliefNode{B}
 
     oi::Int         # index of observation corresponding with this belief
     po::Float64     # probability of seeing that observation
+    poc::Float64    # prob of all observations leading here (cumulative)
 
     L::Float64
     U::Float64
@@ -29,8 +30,11 @@ mutable struct BeliefNode{B}
     children::UnitRange{Int64}
 end
 
-function BeliefNode(b,ind::Int,pind::Int,oi::Int,po::Float64,L::Float64,U::Float64,d::Int)
-    return BeliefNode(b, ind, pind, oi, po, L, U, d, 0:0)
+function BeliefNode(b, L::Float64, U::Float64)
+    BeliefNode(b, 1, 0, 0, 1.0, 1.0, L, U, 0, 0:0)
+end
+function BeliefNode(b,ind::Int,pind::Int,oi::Int,po::Float64,poc::Float64,L::Float64,U::Float64,d::Int)
+    return BeliefNode(b, ind, pind, oi, po, poc, L, U, d, 0:0)
 end
 
 mutable struct Graph
