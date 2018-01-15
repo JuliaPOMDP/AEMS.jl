@@ -37,9 +37,9 @@ function BeliefNode(b,ind::Int,pind::Int,oi::Int,po::Float64,poc::Float64,L::Flo
     return BeliefNode(b, ind, pind, oi, po, poc, L, U, d, 0:0)
 end
 
-mutable struct Graph
+mutable struct Graph{B <: BeliefNode}
     action_nodes::Vector{ActionNode}
-    belief_nodes::Vector{BeliefNode}
+    belief_nodes::Vector{B}
 
     na::Int     # number of action nodes
     nb::Int     # number of belief nodes
