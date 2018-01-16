@@ -1,14 +1,3 @@
-#######
-# DEFINITELY
-#######
-# TODO: fix lower_bound and upper_bound functions
-# TODO: return the action that should be taken
-
-#######
-# MAYBE
-#######
-# TODO: store gamma ^ d?
-
 
 struct DefaultPolicy <: Policy end
 struct DefaultUpdater <: Updater end
@@ -89,7 +78,7 @@ function action(policy::AEMSPlanner, b)
     for i = 1:policy.solver.n_iterations
         
         # determine node to expand
-        best_bn = select_node(policy.G)
+        best_bn = select_node(policy.G, bn_root)
         Lold, Uold = best_bn.L, best_bn.U
 
         expand(policy, best_bn)
@@ -114,8 +103,6 @@ function action(policy::AEMSPlanner, b)
         end
     end
 
-    #a = actions(policy.pomdp)[best_ai]
-    #println("a = ", a)
     return actions(policy.pomdp)[best_ai]
 end
 
@@ -160,48 +147,37 @@ function update_node(G::Graph, bn::BeliefNode)
     return L_old, U_old
 end
 
-#function select_node(G::Graph)
-#    maximum(evaluate_node(G,bn) for bn in G.fringe_list)
-#end
 
-function select_node(G::Graph)
-    best_bn = G.belief_nodes[1]
-    best_val = -Inf
 
-    # iterate over fringe list, evaluating each node
-    for bn in G.fringe_list
-        bn_val = evaluate_node(G, bn)
-        if bn_val >= best_val
-            best_bn = bn
-            best_val = bn_val
+
+
+function select_node(G::Graph, bn::BeliefNode)
+    iszero(bn.children) && return bn
+
+    # select next an
+    #an = G.action_nodes[bn.best_ai]
+    best_U = -Inf
+    best_ai = bn.children[1]
+    for i in bn.children
+        an = G.action_nodes[i]
+        if an.U > best_U
+            best_U = an.U
+            best_ai = i
         end
     end
+    an = G.action_nodes[best_ai]
 
-    return best_bn
-end
-
-
-# evaluates a fringe node using the AEMS heuristic
-function evaluate_node(G::Graph, bn::BeliefNode)
-    # compute pb = P(b^d)
-    pab = 1.0
-    cn = bn     # current node cn
-    while !isroot(G, cn)
-        an = parent_node(G, cn)
-        cn = parent_node(G, an)
-
-        pab *= an.pab
-
-        (pab == 0.0) && break   # just quit if pb is already zero
+    best_val = -Inf
+    best_bn = bn
+    for i in an.children
+        bn = select_node(G, G.belief_nodes[i])
+        bv = bn.poc * (bn.U - bn.L) * bn.gd
+        if bv >= best_val
+            best_val = bv
+            best_bn = bn
+        end
     end
-
-    pb = pab * bn.poc
-    return bn.gd * pb * (bn.U - bn.L)
-end
-
-
-function select_node2(G::Graph, bn::BeliefNode)
-
+    return best_bn
 end
 
 
