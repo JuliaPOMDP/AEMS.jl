@@ -28,15 +28,15 @@ end
 
 
 # PLANNER
-struct AEMSPlanner{P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy, G<:Graph} <: Policy
-    solver::AEMSSolver  # contains solver parameters
+struct AEMSPlanner{S<: AEMSSolver, P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy, G<:Graph} <: Policy
+    solver::S           # contains solver parameters
     pomdp::P            # model
     updater::U
     G::G
     lower_bound::PL      # lower bound
     upper_bound::PU      # upper bound
 end
-function AEMSPlanner(s::AEMSSolver, p::POMDP, up, lb, ub)
+function AEMSPlanner(s, p::POMDP, up, lb, ub)
     b0 = initialize_belief(up, initial_state_distribution(p))
     bn_type = BeliefNode{typeof(b0)}
     return AEMSPlanner(s, p, up, Graph{bn_type}(discount(p)), lb, ub)
