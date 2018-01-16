@@ -71,7 +71,6 @@ function action(policy::AEMSPlanner, b)
     # create belief node and put it in graph
     L = value(policy.lower_bound, b)
     U = value(policy.upper_bound, b)
-    #bn_root = BeliefNode(b, 1, 0, 0, 1.0, 1.0, L, U, 0)
     bn_root = BeliefNode(b, L, U)
     add_node(policy.G, bn_root)
 
@@ -152,7 +151,7 @@ end
 
 
 function select_node(G::Graph, bn::BeliefNode)
-    iszero(bn.children) && return bn
+    isfringe(bn) && return bn
 
     # select next an
     #an = G.action_nodes[bn.best_ai]
@@ -198,9 +197,6 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     pomdp = p.pomdp
     action_list = actions(pomdp)
     obs_list = observations(pomdp)
-
-    # first remove belief node from fringe list
-    remove_from_fringe(G, bn)
 
     La_max = Ua_max = -Inf  # max Ua over actions
     an_start = G.na + 1

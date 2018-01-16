@@ -46,13 +46,12 @@ mutable struct Graph{B <: BeliefNode}
     nb::Int     # number of belief nodes
 
     root_ind::Int
-    fringe_list::Set{B}
 
     df::Float64     # discount factor
 
     # constructor
     function Graph{B}(df::Real) where B
-        new(ActionNode[], BeliefNode{B}[], 0,0,1, Set{BeliefNode{B}}(), df)
+        new(ActionNode[], BeliefNode{B}[], 0, 0, 1, df)
     end
 end
 
@@ -62,10 +61,13 @@ function clear_graph!(G::Graph)
     G.na = 0
     G.nb = 0
     G.root_ind = 1
-    G.fringe_list = Set{BeliefNode}()
 end
 
 isroot(G::Graph, bn::BeliefNode) = G.root_ind == bn.ind
+
+# assumes all beliefs can have children
+# even if it is a terminal belief, I suppose action could do nothing
+isfringe(bn::BeliefNode) = iszero(bn.children)
 
 function add_node(G::Graph, an::ActionNode)
     push!(G.action_nodes, an)
@@ -73,11 +75,8 @@ function add_node(G::Graph, an::ActionNode)
 end
 function add_node(G::Graph, bn::BeliefNode)
     push!(G.belief_nodes, bn)   # add new node to list of belief nodes
-    push!(G.fringe_list, bn)    # add new node to fringe list
     G.nb += 1                   # length of G.belief_nodes increases by 1
 end
 
 parent_node(G::Graph, bn::BeliefNode) = G.action_nodes[bn.pind]
 parent_node(G::Graph, an::ActionNode) = G.belief_nodes[an.pind]
-
-remove_from_fringe(G::Graph, bn::BeliefNode) = delete!(G.fringe_list, bn)
