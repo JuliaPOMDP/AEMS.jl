@@ -90,7 +90,9 @@ function action(policy::AEMSPlanner, b)
         
         # determine node to expand
         best_bn = select_node(policy.G)
-        Lold, Uold = best_bn.L, best_bn.U
+        #Lold, Uold = best_bn.L, best_bn.U
+        Lold = best_bn.L
+        Uold = best_bn.U
 
         expand(policy, best_bn)
 
@@ -193,7 +195,8 @@ function evaluate_node(G::Graph, bn::BeliefNode)
     end
 
     pb = pab * bn.poc
-    return G.df^bn.d * pb * (bn.U - bn.L)
+    #return G.df^bn.d * pb * (bn.U - bn.L)
+    return bn.gd * pb * (bn.U - bn.L)
 end
 
 
@@ -250,7 +253,7 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
 
             # create belief node and add to graph
             poc = bn.poc * bn.po
-            bpn = BeliefNode(bp, G.nb+1, an_ind, oi, po, poc, L, U, bn.d+1)
+            bpn = BeliefNode(bp, G.nb+1, an_ind, oi, po, poc, L, U, bn.d+1, bn.gd*G.df)
             add_node(G, bpn)
         end
 

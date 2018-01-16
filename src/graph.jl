@@ -26,15 +26,16 @@ mutable struct BeliefNode{B}
     L::Float64
     U::Float64
     d::Int          # depth
+    gd::Float64     
 
     children::UnitRange{Int64}
 end
 
 function BeliefNode(b, L::Float64, U::Float64)
-    BeliefNode(b, 1, 0, 0, 1.0, 1.0, L, U, 0, 0:0)
+    BeliefNode(b, 1, 0, 0, 1.0, 1.0, L, U, 0, 1.0, 0:0)
 end
-function BeliefNode(b,ind::Int,pind::Int,oi::Int,po::Float64,poc::Float64,L::Float64,U::Float64,d::Int)
-    return BeliefNode(b, ind, pind, oi, po, poc, L, U, d, 0:0)
+function BeliefNode(b,ind::Int,pind::Int,oi::Int,po::Float64,poc::Float64,L::Float64,U::Float64,d::Int,gd::Float64)
+    return BeliefNode(b, ind, pind, oi, po, poc, L, U, d, gd, 0:0)
 end
 
 mutable struct Graph{B <: BeliefNode}
