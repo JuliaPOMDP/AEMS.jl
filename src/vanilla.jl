@@ -90,9 +90,7 @@ function action(policy::AEMSPlanner, b)
         
         # determine node to expand
         best_bn = select_node(policy.G)
-        #Lold, Uold = best_bn.L, best_bn.U
-        Lold = best_bn.L
-        Uold = best_bn.U
+        Lold, Uold = best_bn.L, best_bn.U
 
         expand(policy, best_bn)
 
@@ -162,7 +160,10 @@ function update_node(G::Graph, bn::BeliefNode)
     return L_old, U_old
 end
 
-# return best belief node
+#function select_node(G::Graph)
+#    maximum(evaluate_node(G,bn) for bn in G.fringe_list)
+#end
+
 function select_node(G::Graph)
     best_bn = G.belief_nodes[1]
     best_val = -Inf
@@ -179,9 +180,9 @@ function select_node(G::Graph)
     return best_bn
 end
 
+
 # evaluates a fringe node using the AEMS heuristic
 function evaluate_node(G::Graph, bn::BeliefNode)
-
     # compute pb = P(b^d)
     pab = 1.0
     cn = bn     # current node cn
@@ -195,7 +196,6 @@ function evaluate_node(G::Graph, bn::BeliefNode)
     end
 
     pb = pab * bn.poc
-    #return G.df^bn.d * pb * (bn.U - bn.L)
     return bn.gd * pb * (bn.U - bn.L)
 end
 

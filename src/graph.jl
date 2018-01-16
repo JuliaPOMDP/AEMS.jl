@@ -46,13 +46,13 @@ mutable struct Graph{B <: BeliefNode}
     nb::Int     # number of belief nodes
 
     root_ind::Int
-    fringe_list::Set{BeliefNode}
+    fringe_list::Set{B}
 
     df::Float64     # discount factor
 
     # constructor
-    function Graph(df::Real)
-        new(ActionNode[], BeliefNode[], 0, 0, 1, Set{BeliefNode}(), df)
+    function Graph{B}(df::Real) where B
+        new(ActionNode[], BeliefNode{B}[], 0,0,1, Set{BeliefNode{B}}(), df)
     end
 end
 
