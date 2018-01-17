@@ -17,18 +17,23 @@ end
 
 
 # PLANNER
-struct AEMSPlanner{S<: AEMSSolver, P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy, G<:Graph} <: Policy
+struct AEMSPlanner{S<: AEMSSolver, P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy, G<:Graph, A, O} <: Policy
     solver::S           # contains solver parameters
     pomdp::P            # model
     updater::U
     G::G
     lower_bound::PL      # lower bound
     upper_bound::PU      # upper bound
+    action_list::Vector{A}
+    obs_list::Vector{O}
 end
-function AEMSPlanner(s, p::POMDP, up, lb, ub)
-    b0 = initialize_belief(up, initial_state_distribution(p))
+function AEMSPlanner(s, pomdp::POMDP, up, lb, ub)
+    b0 = initialize_belief(up, initial_state_distribution(pomdp))
     bn_type = BeliefNode{typeof(b0)}
-    return AEMSPlanner(s, p, up, Graph{bn_type}(discount(p)), lb, ub)
+    G = Graph{bn_type}(discount(pomdp))
+    a_list = ordered_actions(pomdp)
+    o_list = ordered_observations(pomdp)
+    return AEMSPlanner(s, pomdp, up, G, lb, ub, a_list, o_list)
 end
 
 
@@ -102,7 +107,7 @@ function action(policy::AEMSPlanner, b)
         end
     end
 
-    return actions(policy.pomdp)[best_ai]
+    return policy.action_list[best_ai]
 end
 
 # 
@@ -188,21 +193,19 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     G = p.G
     b = bn.b
     pomdp = p.pomdp
-    action_list = actions(pomdp)
-    obs_list = observations(pomdp)
 
     La_max = Ua_max = -Inf  # max Ua over actions
     an_start = G.na + 1
     ai_max = an_start       # index of maximum upper bound (for AEMS2)
 
-    for (ai,a) in enumerate(action_list)
+    for (ai,a) in enumerate(p.action_list)
         an_ind = G.na + 1 # index of parent action node
         bn_start = G.nb + 1
 
         # bounds and reward for action node
         La = Ua = r = R(pomdp, b, a)
 
-        for (oi,o) in enumerate(obs_list)
+        for (oi,o) in enumerate(p.obs_list)
             # probability of measuring o
             po = O(pomdp, b, a, o)
 
@@ -261,12 +264,34 @@ function O(pomdp, b, a, o)
     end
     return sum_sp
 end
+function O(pomdp, b::DiscreteBelief, a, o)
+    sum_sp = 0.0
+    for (spi,sp) in enumerate(b.state_list)
+        od = observation(pomdp, a, sp)
+        po = pdf(od, o)
+        sum_s = 0.0
+        for (si,s) in enumerate(b.state_list)
+            spd = transition(pomdp, s, a)
+            sum_s += pdf(spd, sp) * pdf(b, s)
+        end
+        sum_sp += sum_s * po
+    end
+    return sum_sp
+end
 
 # TODO: maybe don't assume that we have access to ordered_states?
 function R(pomdp, b, a)
     state_list = ordered_states(pomdp)
     expected_r = 0.0
     for s in state_list
+        expected_r += reward(pomdp, s, a) * pdf(b, s)
+    end
+    return expected_r
+end
+function R(pomdp, b::DiscreteBelief, a)
+    #state_list = ordered_states(pomdp)
+    expected_r = 0.0
+    for s in b.state_list
         expected_r += reward(pomdp, s, a) * pdf(b, s)
     end
     return expected_r
