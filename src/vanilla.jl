@@ -130,7 +130,7 @@ function update_node(G::Graph, bn::BeliefNode)
     U_max = L_max = -Inf
     for ai in bn.children
         an = G.action_nodes[ai]
-        an.pab = 0.0            # AEMS2
+        #an.pab = 0.0            # AEMS2
         if an.U > U_max
             U_max = an.U
             ai_max = ai        # AEMS2
@@ -141,7 +141,8 @@ function update_node(G::Graph, bn::BeliefNode)
     bn.L = L_max
     bn.U = U_max
 
-    G.action_nodes[ai_max].pab = 1.0    # AEMS2
+    #G.action_nodes[ai_max].pab = 1.0    # AEMS2
+    bn.aind = ai_max                    # AEMS2
 
     return L_old, U_old
 end
@@ -150,22 +151,14 @@ end
 
 
 
+# recursively selects best fringe node
 function select_node(G::Graph, bn::BeliefNode)
     isfringe(bn) && return bn
 
     # select next an
-    #an = G.action_nodes[bn.best_ai]
-    best_U = -Inf
-    best_ai = bn.children[1]
-    for i in bn.children
-        an = G.action_nodes[i]
-        if an.U > best_U
-            best_U = an.U
-            best_ai = i
-        end
-    end
-    an = G.action_nodes[best_ai]
+    an = G.action_nodes[bn.aind]
 
+    # iterate over child belief nodes of an, selecting best one
     best_val = -Inf
     best_bn = bn
     for i in an.children
@@ -238,7 +231,7 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
 
         # create action node and add to graph
         b_range = bn_start:G.nb      # indices of children belief nodes
-        an = ActionNode(r, bn.ind, b_range, ai, La, Ua)
+        an = ActionNode(r, bn.ind, ai, La, Ua, b_range)
         add_node(G, an)
     end
 
@@ -248,7 +241,8 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     bn.L = La_max
     bn.U = Ua_max
 
-    G.action_nodes[ai_max].pab = 1.0    # AEMS2
+    #G.action_nodes[ai_max].pab = 1.0    # AEMS2
+    bn.aind = ai_max                    # AEMS2
 
 end
 

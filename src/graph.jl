@@ -1,23 +1,25 @@
 mutable struct ActionNode
-    r::Float64
-    pind::Int           # index of parent belief node
-    children::UnitRange{Int64}
-    ai::Int     # which action does this correspond to
+    r::Float64      # reward for taking this action
+    pind::Int       # index of parent belief node in Graph.belief_nodes
+    ai::Int         # which action does this correspond to
 
     pab::Float64        # P(a | b)
     L::Float64
     U::Float64
 
-    function ActionNode(r, pind, children, ai, L, U)
-        new(r, pind, children, ai, 0.0, L, U)
+    children::UnitRange{Int64}
+
+    function ActionNode(r, pind, ai, L, U, children)
+        new(r, pind, ai, 0.0, L, U, children)
     end
 end
 
 
 mutable struct BeliefNode{B}
-    b::B
-    ind::Int
-    pind::Int       # index of parent node
+    b::B            # belief associated with this node
+    ind::Int        # index of this node in Graph.belief_nodes
+    pind::Int       # index of parent action node in Graph.action_nodes
+    aind::Int       # index of best child action node in action_nodes
 
     oi::Int         # index of observation corresponding with this belief
     po::Float64     # probability of seeing that observation
@@ -26,16 +28,16 @@ mutable struct BeliefNode{B}
     L::Float64
     U::Float64
     d::Int          # depth
-    gd::Float64     
+    gd::Float64     # discount^depth, stored to improve computation
 
     children::UnitRange{Int64}
 end
 
 function BeliefNode(b, L::Float64, U::Float64)
-    BeliefNode(b, 1, 0, 0, 1.0, 1.0, L, U, 0, 1.0, 0:0)
+    BeliefNode(b, 1, 0, 0, 0, 1.0, 1.0, L, U, 0, 1.0, 0:0)
 end
-function BeliefNode(b,ind::Int,pind::Int,oi::Int,po::Float64,poc::Float64,L::Float64,U::Float64,d::Int,gd::Float64)
-    return BeliefNode(b, ind, pind, oi, po, poc, L, U, d, gd, 0:0)
+function BeliefNode(b,ind::Int,pind::Int, oi::Int,po::Float64,poc::Float64,L::Float64,U::Float64,d::Int,gd::Float64)
+    return BeliefNode(b, ind, pind, 0, oi, po, poc, L, U, d, gd, 0:0)
 end
 
 mutable struct Graph{B <: BeliefNode}
