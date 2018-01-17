@@ -110,50 +110,6 @@ function action(policy::AEMSPlanner, b)
     return policy.action_list[best_ai]
 end
 
-# 
-function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
-
-    while !isroot(G, bn)
-        an = parent_node(G, bn)
-        an.L += G.df*bn.po * (bn.L - Lold)
-        an.U += G.df*bn.po * (bn.U - Uold)
-        bn = parent_node(G, an)
-
-        # if belief bounds are not improved... does it matter?
-        #if an.U > bn.U && an.L < bn.L .... break?
-
-        Lold, Uold = update_node(G, bn)
-    end
-end
-
-# also updates L and U given children
-# updates P(a | b) for all action children of node bn
-#  according to AEMS2 heuristic
-function update_node(G::Graph, bn::BeliefNode)
-    L_old, U_old = bn.L, bn.U
-    ai_max = bn.children[1]
-    U_max = L_max = -Inf
-    for ai in bn.children
-        an = G.action_nodes[ai]
-        #an.pab = 0.0            # AEMS2
-        if an.U > U_max
-            U_max = an.U
-            ai_max = ai        # AEMS2
-        end
-        an.L > L_max && (L_max = an.L)
-    end
-
-    bn.L = L_max
-    bn.U = U_max
-
-    #G.action_nodes[ai_max].pab = 1.0    # AEMS2
-    bn.aind = ai_max                    # AEMS2
-
-    return L_old, U_old
-end
-
-
-
 
 
 # recursively selects best fringe node
@@ -176,8 +132,6 @@ function select_node(G::Graph, bn::BeliefNode)
     end
     return best_bn
 end
-
-
 
 
 
@@ -249,6 +203,52 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
 
 end
 
+
+# 
+function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
+
+    while !isroot(G, bn)
+        an = parent_node(G, bn)
+        an.L += G.df*bn.po * (bn.L - Lold)
+        an.U += G.df*bn.po * (bn.U - Uold)
+        bn = parent_node(G, an)
+
+        # if belief bounds are not improved... does it matter?
+        #if an.U > bn.U && an.L < bn.L .... break?
+
+        Lold, Uold = update_node(G, bn)
+    end
+end
+
+# also updates L and U given children
+# updates P(a | b) for all action children of node bn
+#  according to AEMS2 heuristic
+function update_node(G::Graph, bn::BeliefNode)
+    L_old, U_old = bn.L, bn.U
+    ai_max = bn.children[1]
+    U_max = L_max = -Inf
+    for ai in bn.children
+        an = G.action_nodes[ai]
+        #an.pab = 0.0            # AEMS2
+        if an.U > U_max
+            U_max = an.U
+            ai_max = ai        # AEMS2
+        end
+        an.L > L_max && (L_max = an.L)
+    end
+
+    bn.L = L_max
+    bn.U = U_max
+
+    #G.action_nodes[ai_max].pab = 1.0    # AEMS2
+    bn.aind = ai_max                    # AEMS2
+
+    return L_old, U_old
+end
+
+
+
+# TODO: this needs to be done with iterator?
 function O(pomdp, b, a, o)
     state_list = ordered_states(pomdp)
     sum_sp = 0.0
