@@ -21,18 +21,17 @@ mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
     root_manager::Symbol
 end
 function AEMSSolver(;
-                    n_iterations::Int = 100,
-                    max_time::Float64 = 1.0,
+                    n_iterations::Int = 1000,
+                    max_time::Real = 1.0,
                     updater = DefaultUpdater(),
-                    lb = DefaultPolicy(),
-                    ub = DefaultPolicy(),
-                    rm::Symbol = :clear
+                    lower_bound = DefaultPolicy(),
+                    upper_bound = DefaultPolicy(),
+                    root_manager::Symbol = :clear
                    )
 
-    if !in(rm, (:clear, :belief, :user))
-        error("Only valid values for rm are :user, :belief, :user")
-    end
-    return AEMSSolver(n_iterations, max_time, updater, lb, ub, rm)
+    @assert in(root_manager, (:clear, :belief, :user))
+
+    return AEMSSolver(n_iterations, float(max_time), updater, lower_bound, upper_bound, root_manager)
 end
 
 

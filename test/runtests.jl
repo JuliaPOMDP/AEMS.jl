@@ -13,15 +13,15 @@ pomdp = BabyPOMDP()
 up = DiscreteUpdater(pomdp)
 
 # testing solver with :clear root_manager
-solver = AEMSSolver(n_iterations = 1000, max_time = .1, updater = up)
+solver = AEMSSolver(max_time=0.1, updater=up)
 test_solver(solver, pomdp)
 
 # testing solver with :belief root_manager
-solver = AEMSSolver(n_iterations=1000, max_time=.1, updater=up, rm=:belief)
+solver = AEMSSolver(max_time=0.1, updater=up, root_manager=:belief)
 test_solver(solver, pomdp)
 
 # testing solver with :user root_manager
-solver = AEMSSolver(n_iterations=1000, max_time=.1, updater=up, rm=:user)
+solver = AEMSSolver(max_time=0.1, updater=up, root_manager=:user)
 test_solver(solver, pomdp)
 
 
@@ -33,13 +33,13 @@ pomdp = TigerPOMDP()
 up = DiscreteUpdater(pomdp)
 
 # testing solver with :clear root_manager
-solver = AEMSSolver(n_iterations = 1000, max_time=.1, updater=up)
+solver = AEMSSolver(max_time=0.1, updater=up)
 test_solver(solver, pomdp)
 
 # testing solver with :belief root_manager
-solver = AEMSSolver(n_iterations = 1000, max_time=.1,updater=up,rm=:belief)
+solver = AEMSSolver(max_time=0.1, updater=up, root_manager=:belief)
 test_solver(solver, pomdp)
 
 # testing solver with :belief root_manager
-solver = AEMSSolver(n_iterations = 1000, max_time=.1, updater=up, rm=:user)
+solver = AEMSSolver(max_time=0.1, updater=up, root_manager=:user)
 test_solver(solver, pomdp)
