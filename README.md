@@ -3,15 +3,27 @@
 [![Build Status](https://travis-ci.org/JuliaPOMDP/AEMS.jl.svg?branch=master)](https://travis-ci.org/JuliaPOMDP/AEMS.jl)
 [![Coverage Status](https://coveralls.io/repos/JuliaPOMDP/AEMS.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaPOMDP/AEMS.jl?branch=master)
 
-Implements anytime error minimization search (AEMS) solver for POMDPs.
+Implements anytime error minimization search (AEMS) solver for POMDPs. This algorithm was originally described in
+
+> Ross, Stéphane, and Brahim Chaib-Draa. "AEMS: An Anytime Online Search Algorithm for Approximate Policy Refinement in Large POMDPs." IJCAI. 2007.
+
+This solver uses AEMS2, which outperforms AEMS1 in nearly all published experiments.
 
 # Installation
+
+```julia
+Pkg.clone("https://github.com/JuliaPOMDP/AEMS.jl")
+```
 
 
 # Quick Use
 
 ```julia
+using POMDPs, POMDPToolbox, AEMS, POMDPModels
+
+pomdp = BabyPOMDP()
 solver = AEMSSolver()
+planner = solve(solver, pomdp)
 ```
 
 # Solver Options
@@ -24,10 +36,9 @@ solver = AEMSSolver()
 * `root_manager` Determines how the root changes once an action is taken and an observation is received. Allowed values are `:clear`, `:belief`, `:user`. Defaults to `:clear`.
 
 # Visualization
+Once you have a planner and have called `action`, you can use the following code to bring up an interactive tree in a Chrome browser window. Click a node to expand/unexpand it.
 
 ```julia
-# suppose you have a planner and have called action (to generate a tree)
-
 using D3Trees
 
 tree = D3Tree(planner)      # creates a visualization tree
