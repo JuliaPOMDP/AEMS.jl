@@ -106,65 +106,65 @@ end
 
 updater(planner::AEMSPlanner) = planner.updater
 
-function determine_root_node(policy::AEMSPlanner, b)
-    if policy.root_manager == :clear
-        clear_graph!(policy.G)
+function determine_root_node(planner::AEMSPlanner, b)
+    if planner.root_manager == :clear
+        clear_graph!(planner.G)
     end
-    if policy.G.nb == 0
-        L = value(policy.lower_bound, b)
-        U = value(policy.upper_bound, b)
+    if planner.G.nb == 0
+        L = value(planner.lower_bound, b)
+        U = value(planner.upper_bound, b)
         bn_root = BeliefNode(b, L, U)
-        add_node(policy.G, bn_root)
+        add_node(planner.G, bn_root)
         return bn_root
     end
 
-    if policy.root_manager == :belief
+    if planner.root_manager == :belief
         # iterate over child beliefs
         # TODO: fix this
         # search for children
         # assumes the root exists
-        an = policy.G.action_nodes[policy.G.an_root]
+        an = planner.G.action_nodes[planner.G.an_root]
         for j in an.children
-            bn = policy.G.belief_nodes[j]
+            bn = planner.G.belief_nodes[j]
             if bn.b == b
-                policy.G.root_ind = bn.ind
-                return get_root(policy.G)
+                planner.G.root_ind = bn.ind
+                return get_root(planner.G)
             end
         end
         error("belief method failed")
-        #return get_root(policy.G)
+        #return get_root(planner.G)
         #error("belief method failed")
         # what if we never find it?
         # 2 options:
         #  a) just clear the graph and start again
         #  b) fail and let user know
-        #return policy.G.belief_nodes[root_ind]
+        #return planner.G.belief_nodes[root_ind]
     end
 
     # if we get to here, then we must have :user
-    return get_root(policy.G)
+    return get_root(planner.G)
 
 end
 
 
-function action(policy::AEMSPlanner, b)
+function action(planner::AEMSPlanner, b)
 
     t_start = time()
 
-    bn_root = determine_root_node(policy, b)
+    bn_root = determine_root_node(planner, b)
 
-    for i = 1:policy.solver.n_iterations
+    for i = 1:planner.solver.n_iterations
         
         # determine node to expand and its pre-expansion bounds
-        best_bn = select_node(policy.G, bn_root)
+        best_bn = select_node(planner.G, bn_root)
         Lold, Uold = best_bn.L, best_bn.U
 
-        expand(policy, best_bn)
+        expand(planner, best_bn)
 
-        backtrack(policy.G, best_bn, Lold, Uold)
+        backtrack(planner.G, best_bn, Lold, Uold)
 
         # stop if the timeout has been reached
-        if (time() - t_start) > policy.solver.max_time
+        if (time() - t_start) > planner.solver.max_time
             #println("max time reached")
             break
         end
@@ -175,7 +175,7 @@ function action(policy::AEMSPlanner, b)
     best_an_ind = 1  # TODO check this is ok
     best_ai = 1
     for ci in bn_root.children
-        an = policy.G.action_nodes[ci]
+        an = planner.G.action_nodes[ci]
         if an.L >= best_L
             best_an_ind = ci
             best_L = an.L
@@ -183,8 +183,8 @@ function action(policy::AEMSPlanner, b)
         end
     end
 
-    policy.G.an_root = best_an_ind
-    return policy.action_list[best_ai]
+    planner.G.an_root = best_an_ind
+    return planner.action_list[best_ai]
 end
 
 
