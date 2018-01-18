@@ -22,7 +22,8 @@ export
 include("graph.jl")
 include("bounds.jl")
 
-include("vanilla.jl")
+include("solver.jl")
+include("action.jl")
 
 include("visualization.jl")
 
