@@ -13,8 +13,10 @@ export
     AEMSPlanner,
     solve,
     action,
-    value
+    value,
 
+    clear_graph,
+    update_root
 
 include("graph.jl")
 include("bounds.jl")

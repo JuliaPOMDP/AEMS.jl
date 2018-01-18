@@ -58,7 +58,6 @@ function AEMSPlanner(s, pomdp::POMDP, up, lb, ub)
 end
 
 clear_graph!(planner::AEMSPlanner) = clear_graph!(planner.G)
-export clear_graph!
 
 function update_root(planner::AEMSPlanner, a, o)
     if planner.root_manager != :user
@@ -76,12 +75,10 @@ function update_root(planner::AEMSPlanner, a, o)
     planner.G.root_ind = new_root_ind
     return planner      # to prevent it from returning planner.G.root_ind
 end
-export update_root
 
 
 # SOLVE
 function solve(solver::AEMSSolver, pomdp::POMDP)
-
     # if no updater was given, default to discrete updater
     up = solver.updater
     if typeof(up) == DefaultUpdater
@@ -91,7 +88,6 @@ function solve(solver::AEMSSolver, pomdp::POMDP)
     # if no lower bound was given to solver, default to blind
     lb = solver.lower_bound
     if typeof(lb) == DefaultPolicy
-        #lb = BlindPolicy(pomdp)
         lb = solve(FixedActionSolver(), pomdp)
     end
 
@@ -143,12 +139,10 @@ function determine_root_node(planner::AEMSPlanner, b)
 
     # if we get to here, then we must have :user
     return get_root(planner.G)
-
 end
 
 
 function action(planner::AEMSPlanner, b)
-
     t_start = time()
 
     bn_root = determine_root_node(planner, b)
@@ -165,7 +159,6 @@ function action(planner::AEMSPlanner, b)
 
         # stop if the timeout has been reached
         if (time() - t_start) > planner.solver.max_time
-            #println("max time reached")
             break
         end
     end
@@ -219,7 +212,6 @@ end
 #
 # I'll also have it do one step of backtracking
 function expand(p::AEMSPlanner, bn::BeliefNode)
-
     # for ease of notation
     G = p.G
     b = bn.b
@@ -280,7 +272,6 @@ end
 
 # 
 function backtrack(G::Graph, bn::BeliefNode, Lold::Float64, Uold::Float64)
-
     while !isroot(G, bn)
         an = parent_node(G, bn)
         an.L += G.df*bn.po * (bn.L - Lold)
@@ -360,7 +351,6 @@ function R(pomdp, b, a)
     return expected_r
 end
 function R(pomdp, b::DiscreteBelief, a)
-    #state_list = ordered_states(pomdp)
     expected_r = 0.0
     for s in b.state_list
         expected_r += reward(pomdp, s, a) * pdf(b, s)
