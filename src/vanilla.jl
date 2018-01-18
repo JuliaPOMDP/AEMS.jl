@@ -19,11 +19,11 @@ end
 
 
 # PLANNER
-struct AEMSPlanner{S<: AEMSSolver, P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy, G<:Graph, A, O} <: Policy
+struct AEMSPlanner{S<: AEMSSolver, P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy, GT<:Graph, A, O} <: Policy
     solver::S           # contains solver parameters
     pomdp::P            # model
     updater::U
-    G::G
+    G::GT
     lower_bound::PL      # lower bound
     upper_bound::PU      # upper bound
     action_list::Vector{A}
@@ -172,7 +172,7 @@ end
 
 
 
-# recursively selects best fringe node
+# recursively selects best fringe node for expansion
 function select_node(G::Graph, bn::BeliefNode)
     isfringe(bn) && return bn
 
@@ -257,9 +257,7 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
 
     bn.L = La_max
     bn.U = Ua_max
-
-    #G.action_nodes[ai_max].pab = 1.0    # AEMS2
-    bn.aind = ai_max                    # AEMS2
+    bn.aind = ai_max        # AEMS2
 
 end
 
@@ -289,7 +287,6 @@ function update_node(G::Graph, bn::BeliefNode)
     U_max = L_max = -Inf
     for ai in bn.children
         an = G.action_nodes[ai]
-        #an.pab = 0.0            # AEMS2
         if an.U > U_max
             U_max = an.U
             ai_max = ai        # AEMS2
@@ -299,9 +296,7 @@ function update_node(G::Graph, bn::BeliefNode)
 
     bn.L = L_max
     bn.U = U_max
-
-    #G.action_nodes[ai_max].pab = 1.0    # AEMS2
-    bn.aind = ai_max                    # AEMS2
+    bn.aind = ai_max        # AEMS2
 
     return L_old, U_old
 end

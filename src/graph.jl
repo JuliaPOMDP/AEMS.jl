@@ -3,15 +3,10 @@ mutable struct ActionNode
     pind::Int       # index of parent belief node in Graph.belief_nodes
     ai::Int         # which action does this correspond to
 
-    pab::Float64        # P(a | b)
     L::Float64
     U::Float64
 
     children::UnitRange{Int64}
-
-    function ActionNode(r, pind, ai, L, U, children)
-        new(r, pind, ai, 0.0, L, U, children)
-    end
 end
 
 
