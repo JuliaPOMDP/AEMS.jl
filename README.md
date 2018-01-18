@@ -51,20 +51,27 @@ However, this requires `==` to be defined for the belief type you are using.
 Further, the beliefs must *exactly* match (no tolerance for slight numerical differences).
 If none of the child nodes match the belief provided to `action`, then an error is thrown (perhaps it should just clear the tree and start over).
 Note also that multiple child beliefs can be identical. In this case the first matching belief is set to be the root (perhaps it should select the one which has the tightest bounds).
-
 To use this method, call `AEMSSolver` with the option `root_manager = :belief`.
 
 3. **The user can provide the planner with the action taken and observation received.**
 The planner can then follow these down the tree to the next belief node.
 To provide this information, the user can call `update_root(planner, a, o)`, where `a` and `o` are the action and observtion.
-
 To use this method, call `AEMSSolver` with the option `root_manager = :user`.
 Note that `update_root` will throw an error if the `root_manager` is not set to `:user`; don't mess with the root unless you specify that it's the user's job.
-
-Unfortunately,
+Unfortunately, the user can't personally call `update_root` after each action/observation pair during simulation.
+Nor do existing simulators take care to update the planner (only the belief).
+Therefore, jj
 ```julia
-a = 17
+if planner.root_manager == :user
+    update_root(planner, a, o)
+end
 ```
+
+### how does this look?
+another option
+
+### here we go
+yes
 
 
 # Visualization
