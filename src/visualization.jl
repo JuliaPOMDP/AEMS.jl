@@ -1,13 +1,22 @@
+######################################################################
+# visualization.jl
+#
+# extends D3Trees to make a graph
+#
+# TODO:
+#  Don't enumerate over belief nodes; start from root and move down.
+######################################################################
+
 using D3Trees
 
-function visualize(planner::AEMSPlanner)
+function D3Trees.D3Tree(planner::AEMSPlanner; title="AEMS Tree", kwargs...)
     G = planner.G
     children = Array{Vector{Int}}(0)
     text = String[]
 
     # create vector of vectors
     for (bni,bn) in enumerate(G.belief_nodes)
-        if bn.children != 0:0
+        if !isfringe(bn)
             push!(children, collect(bn.children) + G.nb)
         else
             push!(children, [])
@@ -27,10 +36,8 @@ function visualize(planner::AEMSPlanner)
         r = "r(a$(an.ai)) = $(round(an.r))"
         L = "\nL=$(round(an.L,2))"
         U = "\nU=$(round(an.U,2))"
-        #pab = "\nP(a|b)=$(round(an.pab,2))"
-        #push!(text, string(r,U,L,pab))
         push!(text, string(r,U,L))
     end
 
-    D3Tree(children, text=text)
+    D3Tree(children, text=text, title=title, kwargs...)
 end
