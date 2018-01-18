@@ -29,6 +29,9 @@ function AEMSSolver(;
                     rm::Symbol = :clear
                    )
 
+    if !in(rm, (:clear, :belief, :user))
+        error("Only valid values for rm are :user, :belief, :user")
+    end
     return AEMSSolver(n_iterations, max_time, updater, lb, ub, rm)
 end
 
