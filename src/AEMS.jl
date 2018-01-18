@@ -7,6 +7,7 @@ using FIB: FIBSolver
 
 import POMDPs: Solver, Policy
 import POMDPs: solve, action, value, update, initialize_belief, updater
+import POMDPs: simulate
 
 export
     AEMSSolver,
@@ -24,6 +25,8 @@ include("bounds.jl")
 
 include("solver.jl")
 include("action.jl")
+
+include("simulate.jl")
 
 include("visualization.jl")
 
