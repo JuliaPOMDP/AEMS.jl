@@ -27,13 +27,25 @@ mutable struct BeliefNode{B}
 
     children::UnitRange{Int64}
 end
-
+# constructor for root node
 function BeliefNode(b, L::Float64, U::Float64)
-    BeliefNode(b, 1, 0, 0, 0, 1.0, 1.0, L, U, 0, 1.0, 0:0)
+    return BeliefNode(b, 1, 0, 0, 0, 1.0, 1.0, L, U, 0, 1.0, 0:0)
 end
-function BeliefNode(b,ind::Int,pind::Int, oi::Int,po::Float64,poc::Float64,L::Float64,U::Float64,d::Int,gd::Float64)
+function BeliefNode(b,
+                    ind::Int,
+                    pind::Int,
+                    oi::Int,
+                    po::Float64,
+                    poc::Float64,
+                    L::Float64,
+                    U::Float64,
+                    d::Int,
+                    gd::Float64
+                   )
+
     return BeliefNode(b, ind, pind, 0, oi, po, poc, L, U, d, gd, 0:0)
 end
+
 
 mutable struct Graph{B <: BeliefNode}
     action_nodes::Vector{ActionNode}

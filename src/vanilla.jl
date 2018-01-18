@@ -13,13 +13,30 @@ mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
 
     root_manager::Symbol
 end
-function AEMSSolver(;n_iterations::Int=100, max_time::Float64=1.0, updater=DefaultUpdater(), lb=DefaultPolicy(), ub=DefaultPolicy(), rm::Symbol=:clear)
-    AEMSSolver(n_iterations, max_time, updater, lb, ub, rm)
+function AEMSSolver(;
+                    n_iterations::Int = 100,
+                    max_time::Float64 = 1.0,
+                    updater = DefaultUpdater(),
+                    lb = DefaultPolicy(),
+                    ub = DefaultPolicy(),
+                    rm::Symbol = :clear
+                   )
+
+    return AEMSSolver(n_iterations, max_time, updater, lb, ub, rm)
 end
 
 
 # PLANNER
-struct AEMSPlanner{S<: AEMSSolver, P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy, GT<:Graph, A, O} <: Policy
+struct AEMSPlanner{S <: AEMSSolver,
+                   P <: POMDP,
+                   U <: Updater,
+                   PL <: Policy,
+                   PU <: Policy,
+                   GT <: Graph,
+                   A,
+                   O
+                  } <: Policy
+
     solver::S           # contains solver parameters
     pomdp::P            # model
     updater::U
@@ -258,7 +275,6 @@ function expand(p::AEMSPlanner, bn::BeliefNode)
     bn.L = La_max
     bn.U = Ua_max
     bn.aind = ai_max        # AEMS2
-
 end
 
 
