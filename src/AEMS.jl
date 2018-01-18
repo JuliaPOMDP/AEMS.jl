@@ -16,6 +16,7 @@ export
     value,
 
     clear_graph,
+    count_nodes,
     update_root
 
 include("graph.jl")

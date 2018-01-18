@@ -57,7 +57,15 @@ function AEMSPlanner(s, pomdp::POMDP, up, lb, ub)
     return AEMSPlanner(s, pomdp, up, G, lb, ub, a_list, o_list, rm)
 end
 
+"""
+Clears existing action/observation graph.
+"""
 clear_graph!(planner::AEMSPlanner) = clear_graph!(planner.G)
+
+"""
+Returns tuple `(nb, na)`, numbers of belief and action nodes in graph
+"""
+count_nodes(planner::AEMSPlanner) = planner.G.nb, planner.G.na
 
 function update_root(planner::AEMSPlanner, a, o)
     if planner.root_manager != :user
@@ -69,12 +77,16 @@ function update_root(planner::AEMSPlanner, a, o)
     original_root = get_root(planner.G)
 
     an_ind = original_root.children.start + ai - 1
-    an = planner.G.action_nodes[an_ind]
+    an = get_an(planner, an_ind)
 
     new_root_ind = an.children.start + oi - 1
     planner.G.root_ind = new_root_ind
     return planner      # to prevent it from returning planner.G.root_ind
 end
+
+# convenience functions
+get_bn(planner::AEMSPlanner, bn_idx::Int) = planner.G.belief_nodes[bn_idx]
+get_an(planner::AEMSPlanner, an_idx::Int) = planner.G.action_nodes[an_idx]
 
 
 # SOLVE
@@ -115,16 +127,22 @@ function determine_root_node(planner::AEMSPlanner, b)
     end
 
     if planner.root_manager == :belief
-        # iterate over child beliefs
-        # TODO: fix this
-        # search for children
-        # assumes the root exists
-        an = planner.G.action_nodes[planner.G.an_root]
-        for j in an.children
-            bn = planner.G.belief_nodes[j]
-            if bn.b == b
-                planner.G.root_ind = bn.ind
-                return get_root(planner.G)
+        bn_root = get_root(planner.G)
+
+        # if this root has same belief, make it the root
+        if bn_root.b == b
+            return bn_root
+        end
+
+        # search through children to see if they might be root
+        for an_idx in bn_root.children
+            an = get_an(planner, an_idx)
+            for bn_idx in an.children
+                bn = get_bn(planner, bn_idx)
+                if bn.b == b
+                    planner.G.root_ind = bn.ind
+                    return get_root(planner.G)
+                end
             end
         end
         error("belief method failed")
@@ -164,21 +182,32 @@ function action(planner::AEMSPlanner, b)
     end
 
     # now return the best action
-    best_L = -Inf
-    best_an_ind = 1  # TODO check this is ok
-    best_ai = 1
-    for ci in bn_root.children
-        an = planner.G.action_nodes[ci]
-        if an.L >= best_L
-            best_an_ind = ci
-            best_L = an.L
-            best_ai = an.ai
+    #best_an_ind = get_best_action(planner, bn_root)
+    #best_an_ind = bn_root.aind
+
+    action_selector = :L
+    best_ai = get_an(planner, bn_root.aind).ai
+    if action_selector == :L
+        best_L = -Inf
+        best_an_ind = 1  # TODO check this is ok
+        best_ai = 1
+        for ci in bn_root.children
+            an = get_an(planner, ci)
+            if an.L >= best_L
+                best_an_ind = ci
+                best_L = an.L
+                best_ai = an.ai
+            end
         end
     end
 
-    planner.G.an_root = best_an_ind
     return planner.action_list[best_ai]
 end
+
+function get_best_action(planner)
+    return planner.action_list[best_ai]
+end
+
 
 
 
@@ -192,8 +221,8 @@ function select_node(G::Graph, bn::BeliefNode)
     # iterate over child belief nodes of an, selecting best one
     best_val = -Inf
     best_bn = bn
-    for i in an.children
-        bn = select_node(G, G.belief_nodes[i])
+    for bn_idx in an.children
+        bn = select_node(G, G.belief_nodes[bn_idx])
         bv = bn.poc * (bn.U - bn.L) * bn.gd
         if bv >= best_val
             best_val = bv
