@@ -42,10 +42,12 @@ a = action(planner, b)
 
 Once an action is taken and an observation is received, the root of the search tree becomes the updated belief. However, due to the structure of `POMDPs.jl`, the planner is not made aware of the resulting observation. Therefore we provide three different ways to manage the root.
 
-1. **Clearing the tree after each action**. This solves the root issue by making a new graph with the current belief as the node, but it's probably less efficient to throw away the tree and start from scratch for each call to `action`.
+#### 1. **Clearing the tree after each action**. 
+This solves the root issue by making a new graph with the current belief as the node, but it's probably less efficient to throw away the tree and start from scratch for each call to `action`.
 Tree clearing is the default behavior, but if you want to be explicit you can call `AEMSSolver` with the option `root_manager = :clear`.
 
-2. **Searching through child beliefs of previous root.** The updated belief should be equal to one of the child beliefs of the previous root.
+#### 2. **Searching through child beliefs of previous root.**
+The updated belief should be equal to one of the child beliefs of the previous root.
 We can set the root to be whichever of the children match the updated belief.
 However, this requires `==` to be defined for the belief type you are using.
 Further, the beliefs must *exactly* match (no tolerance for slight numerical differences).
@@ -53,7 +55,9 @@ If none of the child nodes match the belief provided to `action`, then an error 
 Note also that multiple child beliefs can be identical. In this case the first matching belief is set to be the root (perhaps it should select the one which has the tightest bounds).
 To use this method, call `AEMSSolver` with the option `root_manager = :belief`.
 
-3. **The user can provide the planner with the action taken and observation received.**
+
+#### 3. **The user can provide the planner with the action taken and observation received.**
+
 The planner can then follow these down the tree to the next belief node.
 To provide this information, the user can call `update_root(planner, a, o)`, where `a` and `o` are the action and observtion.
 To use this method, call `AEMSSolver` with the option `root_manager = :user`.
