@@ -27,8 +27,9 @@ function visualize(planner::AEMSPlanner)
         r = "r(a$(an.ai)) = $(round(an.r))"
         L = "\nL=$(round(an.L,2))"
         U = "\nU=$(round(an.U,2))"
-        pab = "\nP(a|b)=$(round(an.pab,2))"
-        push!(text, string(r,U,L,pab))
+        #pab = "\nP(a|b)=$(round(an.pab,2))"
+        #push!(text, string(r,U,L,pab))
+        push!(text, string(r,U,L))
     end
 
     D3Tree(children, text=text)
