@@ -23,13 +23,15 @@ using POMDPs, POMDPToolbox, AEMS, POMDPModels
 
 pomdp = BabyPOMDP()
 solver = AEMSSolver()
-planner = solve(solver, pomdp)
+planner = solve(solver, pomdp)      # planner is of type AEMSPlanner
 
 # once you have a belief b
 a = action(planner, b)
 ```
 
 # Solver Options
+
+The following keyword options are available; for examle, `AEMSSolver(n_iterations = 100, max_time = 0.1)`.
 
 * `n_iterations` Maximum number of fringe expansions during one action. Defaults to 1000.
 * `max_time` Maximum time (in seconds) to spend on one action. Defaults to 1 second.
@@ -42,11 +44,13 @@ a = action(planner, b)
 
 Once an action is taken and an observation is received, the root of the search tree becomes the updated belief. However, due to the structure of `POMDPs.jl`, the planner is not made aware of the resulting observation. Therefore we provide three different ways to manage the root.
 
-#### 1. **Clearing the tree after each action**. 
+#### 1. **Clearing the tree after each action**
+
 This solves the root issue by making a new graph with the current belief as the node, but it's probably less efficient to throw away the tree and start from scratch for each call to `action`.
 Tree clearing is the default behavior, but if you want to be explicit you can call `AEMSSolver` with the option `root_manager = :clear`.
 
-#### 2. **Searching through child beliefs of previous root.**
+#### 2. **Searching through child beliefs of previous root**
+
 The updated belief should be equal to one of the child beliefs of the previous root.
 We can set the root to be whichever of the children match the updated belief.
 However, this requires `==` to be defined for the belief type you are using.
@@ -58,24 +62,26 @@ To use this method, call `AEMSSolver` with the option `root_manager = :belief`.
 
 #### 3. **The user can provide the planner with the action taken and observation received.**
 
-The planner can then follow these down the tree to the next belief node.
+This option is probably the most efficient, because the tree can be reused and no searching over beliefs must be performed. The planner can then follow the action and observation down the tree to the next belief node.
 To provide this information, the user can call `update_root(planner, a, o)`, where `a` and `o` are the action and observtion.
 To use this method, call `AEMSSolver` with the option `root_manager = :user`.
+
 Note that `update_root` will throw an error if the `root_manager` is not set to `:user`; don't mess with the root unless you specify that it's the user's job.
+
 Unfortunately, the user can't personally call `update_root` after each action/observation pair during simulation.
 Nor do existing simulators take care to update the planner (only the belief).
-Therefore, jj
+Therefore, `AEMS.jl` has re-implemented some of the simulators from `POMDPToolbox.jl` for the `AEMSPlanner` type (so far only TestSimulator).
+The only changes are the following three lines of code after generating a new observation:
 ```julia
 if planner.root_manager == :user
     update_root(planner, a, o)
 end
 ```
-
-### how does this look?
-another option
-
-### here we go
-yes
+Obviously, this solution is horrifying.
+Any simulation that wants to take advantage of the `update_root` function must be specifically made for the `AEMSPlanner` type.
+While the other root management methods, like belief-searching, don't require any changes to simulations, I'm not sure they are the optimal solution.
+It can be expensive if there are many beliefs and each belief is very large.
+There is also the issue of beliefs that should be the same but have small numerical differences; these will not be recognized as the same belief and the root will go un-updated.
 
 
 # Visualization
