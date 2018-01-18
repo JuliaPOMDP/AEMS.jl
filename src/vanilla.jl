@@ -10,9 +10,11 @@ mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
 
     lower_bound::PL
     upper_bound::PU
+
+    root_manager::Symbol
 end
-function AEMSSolver(;n_iterations::Int=100, max_time::Float64=1.0, updater=DefaultUpdater(), lb=DefaultPolicy(), ub=DefaultPolicy())
-    AEMSSolver(n_iterations, max_time, updater, lb, ub)
+function AEMSSolver(;n_iterations::Int=100, max_time::Float64=1.0, updater=DefaultUpdater(), lb=DefaultPolicy(), ub=DefaultPolicy(), rm::Symbol=:clear)
+    AEMSSolver(n_iterations, max_time, updater, lb, ub, rm)
 end
 
 
@@ -26,6 +28,7 @@ struct AEMSPlanner{S<: AEMSSolver, P<:POMDP, U<:Updater, PL<:Policy, PU<:Policy,
     upper_bound::PU      # upper bound
     action_list::Vector{A}
     obs_list::Vector{O}
+    root_manager::Symbol
 end
 function AEMSPlanner(s, pomdp::POMDP, up, lb, ub)
     b0 = initialize_belief(up, initial_state_distribution(pomdp))
@@ -33,8 +36,30 @@ function AEMSPlanner(s, pomdp::POMDP, up, lb, ub)
     G = Graph{bn_type}(discount(pomdp))
     a_list = ordered_actions(pomdp)
     o_list = ordered_observations(pomdp)
-    return AEMSPlanner(s, pomdp, up, G, lb, ub, a_list, o_list)
+    rm = s.root_manager
+    return AEMSPlanner(s, pomdp, up, G, lb, ub, a_list, o_list, rm)
 end
+
+clear_graph!(planner::AEMSPlanner) = clear_graph!(planner.G)
+export clear_graph!
+
+function update_root(planner::AEMSPlanner, a, o)
+    if planner.root_manager != :user
+        error("User is trying to update root but (root_manager != :user).")
+    end
+    ai = action_index(planner.pomdp, a)
+    oi = obs_index(planner.pomdp, o)
+
+    original_root = get_root(planner.G)
+
+    an_ind = original_root.children.start + ai - 1
+    an = planner.G.action_nodes[an_ind]
+
+    new_root_ind = an.children.start + oi - 1
+    planner.G.root_ind = new_root_ind
+    return planner      # to prevent it from returning planner.G.root_ind
+end
+export update_root
 
 
 # SOLVE
@@ -64,24 +89,56 @@ end
 
 updater(planner::AEMSPlanner) = planner.updater
 
+function determine_root_node(policy::AEMSPlanner, b)
+    if policy.root_manager == :clear
+        clear_graph!(policy.G)
+    end
+    if policy.G.nb == 0
+        L = value(policy.lower_bound, b)
+        U = value(policy.upper_bound, b)
+        bn_root = BeliefNode(b, L, U)
+        add_node(policy.G, bn_root)
+        return bn_root
+    end
 
-# TODO: don't recreate the graph
+    if policy.root_manager == :belief
+        # iterate over child beliefs
+        # TODO: fix this
+        # search for children
+        # assumes the root exists
+        an = policy.G.action_nodes[policy.G.an_root]
+        for j in an.children
+            bn = policy.G.belief_nodes[j]
+            if bn.b == b
+                policy.G.root_ind = bn.ind
+                return get_root(policy.G)
+            end
+        end
+        error("belief method failed")
+        #return get_root(policy.G)
+        #error("belief method failed")
+        # what if we never find it?
+        # 2 options:
+        #  a) just clear the graph and start again
+        #  b) fail and let user know
+        #return policy.G.belief_nodes[root_ind]
+    end
+
+    # if we get to here, then we must have :user
+    return get_root(policy.G)
+
+end
+
+
 function action(policy::AEMSPlanner, b)
 
     t_start = time()
 
-    # recreate the graph
-    clear_graph!(policy.G)     # TODO: don't do this shit
-
-    # create belief node and put it in graph
-    L = value(policy.lower_bound, b)
-    U = value(policy.upper_bound, b)
-    bn_root = BeliefNode(b, L, U)
-    add_node(policy.G, bn_root)
+    bn_root = determine_root_node(policy, b)
 
     for i = 1:policy.solver.n_iterations
         
-        # determine node to expand
+        # determine node to expand and its pre-expansion bounds
         best_bn = select_node(policy.G, bn_root)
         Lold, Uold = best_bn.L, best_bn.U
 
@@ -98,15 +155,18 @@ function action(policy::AEMSPlanner, b)
 
     # now return the best action
     best_L = -Inf
+    best_an_ind = 1  # TODO check this is ok
     best_ai = 1
     for ci in bn_root.children
         an = policy.G.action_nodes[ci]
         if an.L >= best_L
+            best_an_ind = ci
             best_L = an.L
             best_ai = an.ai
         end
     end
 
+    policy.G.an_root = best_an_ind
     return policy.action_list[best_ai]
 end
 

@@ -48,12 +48,13 @@ mutable struct Graph{B <: BeliefNode}
     nb::Int     # number of belief nodes
 
     root_ind::Int
+    an_root::Int
 
     df::Float64     # discount factor
 
     # constructor
     function Graph{B}(df::Real) where B
-        new(ActionNode[], BeliefNode{B}[], 0, 0, 1, df)
+        new(ActionNode[], BeliefNode{B}[], 0, 0, 1, 1, df)
     end
 end
 
@@ -63,9 +64,12 @@ function clear_graph!(G::Graph)
     G.na = 0
     G.nb = 0
     G.root_ind = 1
+    G.an_root = 1
 end
 
 isroot(G::Graph, bn::BeliefNode) = G.root_ind == bn.ind
+
+get_root(G::Graph) = G.belief_nodes[G.root_ind]
 
 # assumes all beliefs can have children
 # even if it is a terminal belief, I suppose action could do nothing
