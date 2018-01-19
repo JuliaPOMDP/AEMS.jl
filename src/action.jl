@@ -1,5 +1,9 @@
 ######################################################################
 # action.jl
+# 
+# defines the action function.
+#
+# also provides most of the helper functions called by action.
 ######################################################################
 
 function action(planner::AEMSPlanner, b)
@@ -24,32 +28,28 @@ function action(planner::AEMSPlanner, b)
     end
 
     # now return the best action
-    #best_an_ind = get_best_action(planner, bn_root)
-    #best_an_ind = bn_root.aind
+    return get_best_action(planner, bn_root)
+end
 
-    action_selector = :L
+# allows user to select action node with best upper or lower bound
+function get_best_action(planner::AEMSPlanner, bn_root::BeliefNode)
+    # if upper bound is desired...
     best_ai = get_an(planner, bn_root.aind).ai
-    if action_selector == :L
+
+    # if lower bound is desired...
+    if planner.solver.action_selector == :L
+        # loop over child action nodes to find best lower bound
         best_L = -Inf
-        best_an_ind = 1  # TODO check this is ok
-        best_ai = 1
-        for ci in bn_root.children
-            an = get_an(planner, ci)
-            if an.L >= best_L
-                best_an_ind = ci
+        for an_idx in bn_root.children
+            an = get_an(planner, an_idx)
+            if an.L > best_L
                 best_L = an.L
                 best_ai = an.ai
             end
         end
     end
-
     return planner.action_list[best_ai]
 end
-
-function get_best_action(planner)
-    return planner.action_list[best_ai]
-end
-
 
 
 

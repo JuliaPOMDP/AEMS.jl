@@ -13,12 +13,14 @@ struct DefaultUpdater <: Updater end
 mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
     n_iterations::Int
     max_time::Float64   # max time per action, in seconds
+
     updater::U
 
     lower_bound::PL
     upper_bound::PU
 
     root_manager::Symbol
+    action_selector::Symbol
 end
 function AEMSSolver(;
                     n_iterations::Int = 1000,
@@ -26,12 +28,14 @@ function AEMSSolver(;
                     updater = DefaultUpdater(),
                     lower_bound = DefaultPolicy(),
                     upper_bound = DefaultPolicy(),
-                    root_manager::Symbol = :clear
+                    root_manager::Symbol = :clear,
+                    action_selector::Symbol = :U
                    )
 
+    @assert in(action_selector, (:U, :L))
     @assert in(root_manager, (:clear, :belief, :user))
 
-    return AEMSSolver(n_iterations, float(max_time), updater, lower_bound, upper_bound, root_manager)
+    return AEMSSolver(n_iterations, float(max_time), updater, lower_bound, upper_bound, root_manager, action_selector)
 end
 
 
