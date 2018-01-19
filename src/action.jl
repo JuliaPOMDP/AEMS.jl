@@ -181,7 +181,8 @@ end
 
 
 
-# TODO: this needs to be done with iterator?
+# probability of observing o after taking a from b
+# TODO: use iterator... plus I'm not sure how to make that work
 function O(pomdp, b, a, o)
     state_list = ordered_states(pomdp)
     sum_sp = 0.0
@@ -212,15 +213,10 @@ function O(pomdp, b::DiscreteBelief, a, o)
     return sum_sp
 end
 
-# TODO: maybe don't assume that we have access to ordered_states?
-function R(pomdp, b, a)
-    state_list = ordered_states(pomdp)
-    expected_r = 0.0
-    for s in state_list
-        expected_r += reward(pomdp, s, a) * pdf(b, s)
-    end
-    return expected_r
-end
+# expected reward 
+# TODO: test thoroughly
+R(pomdp, b, a) = sum( reward(pomdp,s,a)*pdf(b,s) for s in iterator(b) )
+
 function R(pomdp, b::DiscreteBelief, a)
     expected_r = 0.0
     for s in b.state_list
