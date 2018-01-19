@@ -9,9 +9,41 @@
 struct DefaultPolicy <: Policy end
 struct DefaultUpdater <: Updater end
 
-# solver
+"""
+Implements anytime error minimization search (AEMS).
+Specifically, this is AEMS2, which generally outperforms AEMS1.
+
+Example with some optional arguments:
+
+`AEMSSolver(max_iterations = 100, action_selector = :L)`
+
+Fields:
+
+    
+- `max_iterations`
+    Maximum node expansions per action.
+
+- `max_time`
+    Maximum time (in seconds) to spend per action.
+
+- `updater`
+    Updater used to propagate belief nodes. Defaults to DiscreteUpdater.
+
+- `lower_bound`
+    Subtype of `Policy`. Defaults to fixed action policy.
+
+- `upper_bound`
+    Subtype of `Policy`. Defaults to FIB policy.
+
+- `root_manager`
+    Allowable values are `:clear`, `:belief`, or `:user`.
+    Defaults to `:clear`.
+
+- `action_selector`
+    Allowable values are `:U` or `:L`. Defaults to `:U`
+"""
 mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
-    n_iterations::Int
+    max_iterations::Int
     max_time::Float64   # max time per action, in seconds
 
     updater::U
@@ -23,7 +55,7 @@ mutable struct AEMSSolver{U<:Updater, PL<:Policy, PU<:Policy} <: Solver
     action_selector::Symbol
 end
 function AEMSSolver(;
-                    n_iterations::Int = 1000,
+                    max_iterations::Int = 1000,
                     max_time::Real = 1.0,
                     updater = DefaultUpdater(),
                     lower_bound = DefaultPolicy(),
@@ -35,7 +67,7 @@ function AEMSSolver(;
     @assert in(action_selector, (:U, :L))
     @assert in(root_manager, (:clear, :belief, :user))
 
-    return AEMSSolver(n_iterations, float(max_time), updater, lower_bound, upper_bound, root_manager, action_selector)
+    return AEMSSolver(max_iterations, float(max_time), updater, lower_bound, upper_bound, root_manager, action_selector)
 end
 
 
@@ -158,14 +190,8 @@ function determine_root_node(planner::AEMSPlanner, b)
                 end
             end
         end
-        error("belief method failed")
-        #return get_root(planner.G)
-        #error("belief method failed")
-        # what if we never find it?
-        # 2 options:
-        #  a) just clear the graph and start again
-        #  b) fail and let user know
-        #return planner.G.belief_nodes[root_ind]
+        error("None of the child beliefs match input")
+        # another option is to clear graph and start again
     end
 
     # if we get to here, then we must have :user

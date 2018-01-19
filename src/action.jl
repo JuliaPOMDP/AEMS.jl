@@ -11,7 +11,7 @@ function action(planner::AEMSPlanner, b)
 
     bn_root = determine_root_node(planner, b)
 
-    for i = 1:planner.solver.n_iterations
+    for i = 1:planner.solver.max_iterations
         
         # determine node to expand and its pre-expansion bounds
         best_bn = select_node(planner.G, bn_root)

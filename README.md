@@ -31,9 +31,9 @@ a = action(planner, b)
 
 # Solver Options
 
-The following keyword options are available; for examle, `AEMSSolver(n_iterations = 100, max_time = 0.1)`.
+The following keyword options are available; for examle, `AEMSSolver(max_iterations = 100, max_time = 0.1)`.
 
-* `n_iterations` Maximum number of fringe expansions during one action. Defaults to 1000.
+* `max_iterations` Maximum number of fringe expansions during one action. Defaults to 1000.
 * `max_time` Maximum time (in seconds) to spend on one action. Defaults to 1 second.
 * `updater` The updater used to propagate beliefs in the tree. Defaults to a discrete updater.
 * `lower_bound` Defaults to a fixed-action policy.
@@ -42,7 +42,7 @@ The following keyword options are available; for examle, `AEMSSolver(n_iteration
 * `action_selector` Determines if action with best upper or lower bound should be selected after tree expansion. Defaults to `:U` to select action with best upper bound; use `:L` to select action with best lower bound.
 
 # Bounds
-The upper and lower bounds must be sub-types of the `Policy` type and have the `value` function implemented.
+The upper and lower bounds must be subtypes of the `Policy` type and have the `value` function implemented.
 This function is then used to estimate the bound values at new beliefs.
 
 # Root Management
