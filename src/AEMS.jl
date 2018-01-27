@@ -16,7 +16,7 @@ export
     action,
     value,
 
-    clear_graph,
+    clear_graph!,
     count_nodes,
     update_root
 
