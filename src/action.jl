@@ -183,7 +183,8 @@ end
 
 # probability of observing o after taking a from b
 # TODO: use iterator... plus I'm not sure how to make that work
-function O(pomdp, b, a, o)
+# TODO: I'm not sure this works
+function O(pomdp::POMDP, b, a, o)
     state_list = ordered_states(pomdp)
     sum_sp = 0.0
     for (spi,sp) in enumerate(state_list)
@@ -198,7 +199,7 @@ function O(pomdp, b, a, o)
     end
     return sum_sp
 end
-function O(pomdp, b::DiscreteBelief, a, o)
+function O(pomdp::POMDP, b::DiscreteBelief, a, o)
     sum_sp = 0.0
     for (spi,sp) in enumerate(b.state_list)
         od = observation(pomdp, a, sp)
@@ -214,9 +215,10 @@ function O(pomdp, b::DiscreteBelief, a, o)
 end
 
 # expected reward 
-# TODO: test thoroughly
-R(pomdp, b, a) = sum( reward(pomdp,s,a)*pdf(b,s) for s in iterator(b) )
+# TODO: test thoroughly... this is pretty but maybe inefficient?
+R(p::POMDP, b, a) = sum( reward(p,s,a)*pdf(b,s) for s in iterator(b) )
 
+# This is equivalent to above, but it allocates less memory
 function R(pomdp, b::DiscreteBelief, a)
     expected_r = 0.0
     for s in b.state_list
