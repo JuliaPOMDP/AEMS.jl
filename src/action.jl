@@ -219,7 +219,7 @@ end
 R(p::POMDP, b, a) = sum( reward(p,s,a)*pdf(b,s) for s in iterator(b) )
 
 # This is equivalent to above, but it allocates less memory
-function R(pomdp, b::DiscreteBelief, a)
+function R(pomdp::POMDP, b::DiscreteBelief, a)
     expected_r = 0.0
     for s in b.state_list
         expected_r += reward(pomdp, s, a) * pdf(b, s)
