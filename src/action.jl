@@ -187,11 +187,14 @@ end
 function O(pomdp::POMDP, b, a, o)
     state_list = ordered_states(pomdp)
     sum_sp = 0.0
-    for (spi,sp) in enumerate(state_list)
+    for sp in state_list
         od = observation(pomdp, a, sp)
         po = pdf(od, o)
+        if po == 0
+            continue
+        end
         sum_s = 0.0
-        for (si,s) in enumerate(state_list)
+        for s in state_list
             spd = transition(pomdp, s, a)
             sum_s += pdf(spd, sp) * pdf(b, s)
         end
@@ -201,11 +204,14 @@ function O(pomdp::POMDP, b, a, o)
 end
 function O(pomdp::POMDP, b::DiscreteBelief, a, o)
     sum_sp = 0.0
-    for (spi,sp) in enumerate(b.state_list)
+    for sp in b.state_list
         od = observation(pomdp, a, sp)
         po = pdf(od, o)
+        if po == 0
+            continue
+        end
         sum_s = 0.0
-        for (si,s) in enumerate(b.state_list)
+        for s in b.state_list
             spd = transition(pomdp, s, a)
             sum_s += pdf(spd, sp) * pdf(b, s)
         end
