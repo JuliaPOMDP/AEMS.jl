@@ -62,7 +62,7 @@ function solve(solver::FixedActionSolver, pomdp::POMDP)
     
 
     for i = 1:solver.max_iterations
-        copy!(old_alphas, alphas)
+        copyto!(old_alphas, alphas)
         residual = 0.0
 
         for (ai,a) in enumerate(action_list)
