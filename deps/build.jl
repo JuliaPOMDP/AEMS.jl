@@ -1,3 +1,3 @@
 using POMDPs
 
-POMDPs.add("FIB")
+#POMDPs.add("FIB")

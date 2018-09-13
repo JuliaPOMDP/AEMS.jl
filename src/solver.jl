@@ -93,7 +93,7 @@ struct AEMSPlanner{S <: AEMSSolver,
     root_manager::Symbol
 end
 function AEMSPlanner(s, pomdp::POMDP, up, lb, ub)
-    b0 = initialize_belief(up, initial_state_distribution(pomdp))
+    b0 = initialize_belief(up, initialstate_distribution(pomdp))
     bn_type = BeliefNode{typeof(b0)}
     G = Graph{bn_type}(discount(pomdp))
     a_list = ordered_actions(pomdp)

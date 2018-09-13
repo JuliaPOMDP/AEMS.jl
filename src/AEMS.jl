@@ -1,12 +1,12 @@
-__precompile__()
-
 module AEMS
 
 using POMDPs
-using POMDPToolbox
 
 using FIB: FIBSolver
-
+using BeliefUpdaters
+using POMDPModelTools
+using POMDPPolicies
+using POMDPTesting: TestSimulator
 import POMDPs: Solver, Policy
 import POMDPs: solve, action, value, update, initialize_belief, updater
 import POMDPs: simulate

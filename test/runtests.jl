@@ -1,8 +1,9 @@
 using AEMS
 using POMDPs
-using POMDPToolbox
+using BeliefUpdaters
 using POMDPModels
-using Base.Test
+using POMDPTesting
+using Test
 
 #@requirements_info solver pomdp
 
