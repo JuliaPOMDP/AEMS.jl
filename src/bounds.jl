@@ -83,5 +83,5 @@ function solve(solver::FixedActionSolver, pomdp::POMDP)
         residual < solver.tolerance ? break : nothing
     end
 
-    return AlphaVectorPolicy(pomdp, alphas)
+    return AlphaVectorPolicy(pomdp, alphas, action_list)
 end
