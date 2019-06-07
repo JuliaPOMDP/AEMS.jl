@@ -1,7 +1,7 @@
 name = "AEMS"
 uuid = "3b430cce-3194-5812-b203-bf9e73c3e836"
 repo = "https://github.com/JuliaPOMDP/AEMS.jl"
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 POMDPs = "a93abf59-7444-517b-a68a-c42f96afdd7d"
