@@ -116,8 +116,8 @@ function update_root(planner::AEMSPlanner, a, o)
     if planner.root_manager != :user
         error("User is trying to update root but (root_manager != :user).")
     end
-    ai = action_index(planner.pomdp, a)
-    oi = obs_index(planner.pomdp, o)
+    ai = actionindex(planner.pomdp, a)
+    oi = obsindex(planner.pomdp, o)
 
     original_root = get_root(planner.G)
 
