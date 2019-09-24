@@ -49,8 +49,8 @@ end
 function solve(solver::FixedActionSolver, pomdp::POMDP)
 
     # convenience variables
-    ns = n_states(pomdp)
-    na = n_actions(pomdp)
+    ns = length(states(pomdp))
+    na = length(actions(pomdp))
     state_list = ordered_states(pomdp)
     action_list = ordered_actions(pomdp)
 
