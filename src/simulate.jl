@@ -8,7 +8,7 @@
 # This code adds modifications
 ######################################################################
 
-function simulate(sim::TestSimulator, pomdp::POMDP, policy::AEMSPlanner, updater::Updater, initial_distribution::Any)
+function simulate(sim::Simulator, pomdp::POMDP, policy::AEMSPlanner, updater::Updater, initial_distribution::Any)
 
     s = rand(sim.rng, initial_distribution)
     b = initialize_belief(updater, initial_distribution)

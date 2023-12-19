@@ -3,10 +3,7 @@ module AEMS
 using POMDPs
 
 using FIB: FIBSolver
-using BeliefUpdaters
-using POMDPModelTools
-using POMDPPolicies
-using POMDPTesting: TestSimulator
+using POMDPTools
 import POMDPs: Solver, Policy
 import POMDPs: solve, action, value, update, initialize_belief, updater
 import POMDPs: simulate
