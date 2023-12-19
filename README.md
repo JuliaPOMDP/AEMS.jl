@@ -1,7 +1,7 @@
 # AEMS
 
-[![Build Status](https://travis-ci.org/JuliaPOMDP/AEMS.jl.svg?branch=master)](https://travis-ci.org/JuliaPOMDP/AEMS.jl)
-[![Coverage Status](https://coveralls.io/repos/JuliaPOMDP/AEMS.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaPOMDP/AEMS.jl?branch=master)
+[![CI](https://github.com/JuliaPOMDP/AEMS.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/JuliaPOMDP/AEMS.jl/actions/workflows/CI.yml)
+[![codecov.io](http://codecov.io/github/JuliaPOMDP/AEMS.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaPOMDP/AEMS.jl?branch=master)
 
 Implements anytime error minimization search (AEMS) solver for POMDPs. This algorithm was originally described in
 
@@ -12,14 +12,15 @@ Specifically, this solver is AEMS2, which outperforms AEMS1 in nearly all publis
 # Installation
 
 ```julia
-Pkg.clone("https://github.com/JuliaPOMDP/AEMS.jl")
+using Pkg
+Pkg.add("AEMS")
 ```
 
 
 # Quick Use
 
 ```julia
-using POMDPs, POMDPToolbox, AEMS, POMDPModels
+using POMDPs, POMDPTools, AEMS, POMDPModels
 
 pomdp = BabyPOMDP()
 solver = AEMSSolver()
