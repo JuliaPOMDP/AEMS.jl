@@ -12,14 +12,15 @@ Specifically, this solver is AEMS2, which outperforms AEMS1 in nearly all publis
 # Installation
 
 ```julia
-Pkg.clone("https://github.com/JuliaPOMDP/AEMS.jl")
+using Pkg
+Pkg.add("AEMS")
 ```
 
 
 # Quick Use
 
 ```julia
-using POMDPs, POMDPToolbox, AEMS, POMDPModels
+using POMDPs, POMDPTools, AEMS, POMDPModels
 
 pomdp = BabyPOMDP()
 solver = AEMSSolver()
