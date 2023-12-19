@@ -8,12 +8,12 @@
 # This code adds modifications
 ######################################################################
 
-function simulate(sim::Simulator, pomdp::POMDP, policy::AEMSPlanner, updater::Updater, initial_distribution::Any)
+function simulate(sim::RolloutSimulator, pomdp::POMDP{S, A, O}, policy::AEMSPlanner, updater::Updater, initial_distribution::Any) where {S, A, O}
 
     s = rand(sim.rng, initial_distribution)
     b = initialize_belief(updater, initial_distribution)
 
-    disc = 1.0
+    disc = discount(pomdp)
     r_total = 0.0
 
     step = 1
