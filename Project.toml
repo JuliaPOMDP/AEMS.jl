@@ -1,7 +1,7 @@
 name = "AEMS"
 uuid = "3b430cce-3194-5812-b203-bf9e73c3e836"
 repo = "https://github.com/JuliaPOMDP/AEMS.jl"
-version = "0.1.5"
+version = "0.1.6"
 
 [deps]
 D3Trees = "e3df1716-f71e-5df9-9e2d-98e193103c45"
@@ -13,8 +13,8 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 [compat]
 D3Trees = "0.3"
 FIB = "0.4"
-POMDPTools = "0.1"
-POMDPs = "0.9"
+POMDPTools = "0.1, 1"
+POMDPs = "0.9, 1"
 julia = "1"
 
 [extras]
